@@ -24,6 +24,7 @@ build = ["pyinstaller>=6.16"]
 dev = [
     "pytest>=8.4",
     "pytest-asyncio>=1.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.14",
 ]
 

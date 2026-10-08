@@ -15,3 +15,4 @@ apps/desktop/src-tauri/binaries/
 
 # graphify output (knowledge graph, cache, manifest)
 graphify-out/
+.coverage

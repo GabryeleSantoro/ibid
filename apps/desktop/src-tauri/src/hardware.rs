@@ -92,3 +92,18 @@ pub fn detect() -> HardwareInfo {
         profile: profile.to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Probes shell out, so only the host-independent invariants are asserted.
+    // ponytail: nvidia() parsing is untested; extract a pure parse fn if it ever breaks.
+    #[test]
+    fn detect_is_self_consistent() {
+        let hw = detect();
+        assert!(hw.cpu_count >= 1);
+        assert!(["gpu", "balanced", "cpu"].contains(&hw.profile.as_str()));
+        assert_eq!(hw.profile == "cpu", hw.gpu_backend == "cpu");
+    }
+}
