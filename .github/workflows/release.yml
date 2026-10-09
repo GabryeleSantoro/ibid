@@ -54,6 +54,6 @@ jobs:
           releaseName: v${{ steps.version.outputs.next }}
           releaseBody: ${{ github.event.head_commit.message }}
           releaseDraft: false
-          prerelease: true  # alpha: GitHub "latest" skips prereleases, so the updater endpoint will not see these
+          prerelease: false  # must be false: updater endpoint uses /releases/latest, which skips prereleases
           includeUpdaterJson: true
           args: --target universal-apple-darwin
