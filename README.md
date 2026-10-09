@@ -27,7 +27,7 @@ Supported formats: **PDF**, **PowerPoint (PPTX)**, **Markdown** and **plain text
 
 ## Contents
 
-[Installation](#installation) · [First launch](#first-launch) · [Using Ibid](#using-ibid) · [Privacy in practice](#privacy-in-practice) · [FAQ](#faq) · [Issues and feedback](#issues-and-feedback)
+[Installation](#installation) · [System requirements](#system-requirements) · [First launch](#first-launch) · [Using Ibid](#using-ibid) · [Privacy in practice](#privacy-in-practice) · [FAQ](#faq) · [Issues and feedback](#issues-and-feedback)
 
 ## Installation
 
@@ -36,6 +36,27 @@ Supported formats: **PDF**, **PowerPoint (PPTX)**, **Markdown** and **plain text
 3. Launch it.
 
 Ibid checks for updates on its own and can install them in the background (Settings → Updates). You can turn that off or check manually.
+
+## System requirements
+
+Ibid runs on macOS only. Search runs on your machine, so memory and disk matter more than the processor.
+
+| | Minimum | Recommended |
+| --- | --- | --- |
+| **Mac** | Intel or Apple Silicon | Apple Silicon (M1 or later) |
+| **Memory** | 8 GB | 16 GB or more |
+| **Free disk** | 3 GB | 10 GB or more, plus room for the index of your library |
+| **Answer model** | A remote connection (OpenRouter, OpenAI, Anthropic) | Remote, or the built-in local model on 16 GB+ |
+| **Network** | Needed once to download models, and for remote connections | Same |
+
+What the figures are based on:
+
+- **Downloads.** Embedder about 0.3 GB, reranker about 0.6 GB. The optional built-in answer model is about 1.1 GB.
+- **Memory while working.** The built-in answer model takes about 2.1 GB while it writes an answer and is released after 60 idle seconds. The embedder and reranker stay loaded alongside the app.
+- **Speed.** On Apple Silicon, Ibid uses the GPU through Metal and shares unified memory with it. On an Intel Mac everything runs on the CPU, so indexing and local answers are noticeably slower; a remote connection is the better choice there.
+- **Index size.** It grows with your library. It lives in `~/.ibid`, so keep free space on your home volume.
+
+The 2.1 GB figure was measured on an Apple Silicon Mac. The other memory and disk limits are conservative estimates, not benchmarks, and Ibid has not been tested on older macOS releases. Settings → Performance and Diagnostics show what your Mac was detected as.
 
 ## First launch
 

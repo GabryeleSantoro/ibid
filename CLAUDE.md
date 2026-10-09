@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Local-first desktop RAG app (README and docs are in Italian). Three runtime layers:
+Local-first desktop RAG app (README and docs are in English). Three runtime layers:
 
 - `apps/desktop/src` — React 19 + TypeScript + Vite UI (TanStack Router/Query, Tailwind 4, shadcn/radix).
 - `apps/desktop/src-tauri` — Rust Tauri 2 shell. Spawns/supervises the Python sidecar (`sidecars.rs`), holds the session token and sidecar URL (the webview never sees them), proxies HTTP/SSE (`proxy.rs`), stores connection secrets in the OS keychain (`keychain.rs`).
@@ -29,7 +29,7 @@ uv run ragcore index ./fixtures/docs --data-dir /tmp/rc        # real backend, h
 uv run ragcore ask "what does reranking do" --data-dir /tmp/rc # prints answer + validated [doc_id:page] citations
 ```
 
-`serve` defaults to `--backend stub`: the shell passes no `--backend` and doesn't supervise the llama-servers yet. `index`/`ask` always use the real backend.
+Bare `serve` defaults to `--backend stub` (dev runs only). The shell passes `--backend real`, and ragcore starts/restarts the embedder and reranker llama-servers itself, so the shell supervises only ragcore. `index`/`ask` always use the real backend.
 
 Frontend / shell (from `apps/desktop`):
 
@@ -52,6 +52,7 @@ Releases: pushing a `v*` tag triggers `.github/workflows/release.yml`; the versi
 ## Sidecar architecture (core/ragcore/src/ragcore)
 
 - `backend.py` composes a `Backend` from ports (`ports.py`: store, answer engine, jobs, model hub) for the process lifetime. `config.backend` is `"stub"` (default: in-memory fixture corpus, keyword retrieval, scripted answers in `stub/`) or `"real"` (`store/lance.py` + `store/meta.py`: LanceDB vectors + SQLite metadata, embeddings via `models/embed.py`). API routes (`api/routes/`) depend only on the ports, so adapters swap without route changes.
+- `model_servers.py`: owns the embedder/reranker llama-servers (install on user request, watchdog restart every 5 s). `local_llm.py`: built-in Qwen3-1.7B answer model, started on first use, stopped after 60 s idle.
 - Ingestion: `ingest/walk.py` (scan/filter) → `parse.py` (Markdown, TXT, PDF, PPTX) → `chunk.py` (page-safe overlapping windows with section context). Page numbers and chunk offsets exist to support citation validation.
 - `citations.py`: a citation not pointing at a retrieved passage is discarded — preserve this invariant when touching answer streaming.
 - Generative model is never configured by env vars: the user creates/activates a Connection (OpenRouter/OpenAI/Anthropic/OpenAI-compatible) in Settings. OpenAI-compatible uses `/chat/completions` streaming; Anthropic uses native `/v1/messages`. No active connection → `/query` uses the scripted stub and slide conversion returns 409. API keys live in the keychain (Rust) and only in memory in ragcore.
