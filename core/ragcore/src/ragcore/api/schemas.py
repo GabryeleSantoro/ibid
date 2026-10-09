@@ -278,6 +278,7 @@ class DoneEvent(BaseModel):
     latency: StageLatency
     connection_id: str | None = None
     remote: bool = False
+    tokens_per_s: float | None = None
 
 
 class ErrorEvent(BaseModel):
@@ -338,7 +339,7 @@ class ConversionDoneEvent(BaseModel):
 # --------------------------------------------------------------------- connections
 
 
-ConnectionKind = Literal["openai-compatible", "anthropic"]
+ConnectionKind = Literal["openai-compatible", "anthropic", "local"]
 ThinkingLevel = Literal["off", "low", "medium", "high"]
 ProviderSort = Literal["price", "throughput", "latency"]
 
@@ -520,6 +521,7 @@ class AppSettings(BaseModel):
     telemetry: bool = False
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     performance: PerformanceSettings = Field(default_factory=PerformanceSettings)
+    chat_extra_instructions: str = Field(default="", max_length=1000)
 
 
 class AppSettingsPatch(BaseModel):
@@ -529,6 +531,7 @@ class AppSettingsPatch(BaseModel):
     telemetry: bool | None = None
     retrieval: RetrievalSettings | None = None
     performance: PerformanceSettings | None = None
+    chat_extra_instructions: str | None = Field(default=None, max_length=1000)
 
 
 class WipeRequest(BaseModel):

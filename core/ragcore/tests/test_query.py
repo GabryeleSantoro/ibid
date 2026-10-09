@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from ragcore.api.routes.query import project_filters, route_mode
+from ragcore.api.routes.query import project_filters, route_mode, tokens_per_second
 from ragcore.api.schemas import QueryFilters
 
 # ----------------------------------------------------------------- mode router
@@ -339,3 +339,46 @@ def test_a_query_without_a_language_keeps_the_default_prompt(
         client.app.dependency_overrides.pop(deps.get_answerer, None)
 
     assert captured["system_prompt"] == SYSTEM_PROMPT
+
+
+def test_speed_counts_from_the_first_piece() -> None:
+    assert tokens_per_second(101, 5.0, 15.0) == 10.0
+
+
+def test_short_answers_have_no_speed() -> None:
+    assert tokens_per_second(29, 0.0, 10.0) is None
+
+
+def test_an_answer_that_arrived_at_once_has_no_speed() -> None:
+    assert tokens_per_second(100, 3.0, 3.0) is None
+    assert tokens_per_second(0, None, None) is None
+
+
+def test_stub_answers_report_no_speed(client: TestClient, read_events) -> None:
+    with client.stream("POST", "/query", json={"q": "How does reranking work?"}) as response:
+        done = dict(read_events(response))["done"]
+
+    assert done["tokens_per_s"] is None
+
+
+def test_extra_instructions_reach_the_answer_engine(client: TestClient, read_events) -> None:
+    from ragcore.api import deps
+
+    captured: dict = {}
+
+    class Recorder:
+        async def stream(
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None
+        ):
+            captured["system_prompt"] = system_prompt
+            yield "ok"
+
+    client.patch("/settings", json={"chat_extra_instructions": "Answer in bullets"})
+    client.app.dependency_overrides[deps.get_answerer] = Recorder
+    try:
+        with client.stream("POST", "/query", json={"q": "Why rerank?"}) as response:
+            read_events(response)
+    finally:
+        client.app.dependency_overrides.pop(deps.get_answerer, None)
+
+    assert captured["system_prompt"].endswith("Answer in bullets")

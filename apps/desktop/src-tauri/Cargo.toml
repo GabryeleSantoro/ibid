@@ -34,6 +34,7 @@ reqwest = { version = "0.13.5", default-features = false, features = ["json", "s
 # tauri-plugin-updater turns on reqwest/rustls-no-provider; we install the provider ourselves in run().
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 keyring = { version = "4.2.0", features = ["apple-native-keyring-store", "windows-native-keyring-store", "linux-keyutils-keyring-store"] }
+tauri-plugin-autostart = "=2.5.1"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

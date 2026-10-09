@@ -5,9 +5,9 @@
 //! healthy, restarts it with backoff if it dies, and kills it on exit. The
 //! webview never learns the port or the token.
 //!
-//! Only `ragcore` is supervised today. The two `llama-server` instances (and a
-//! third for an in-app generation model) are the same shape, which is why the
-//! state below is keyed by role rather than hard-coded to one child.
+//! Only `ragcore` is supervised here. It starts and restarts the embedder and
+//! reranker `llama-server` instances itself (`model_servers.py`), so the shell
+//! needs no knowledge of them.
 
 use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
@@ -28,7 +28,6 @@ use crate::hardware::HardwareInfo;
 
 const LOG_CAPACITY: usize = 2000;
 /// The log file is moved aside once it passes this, keeping one previous copy.
-const LOG_FILE_MAX_BYTES: u64 = 5 * 1024 * 1024;
 // Generous: ragcore re-reads the whole library before it reports healthy.
 const READY_TIMEOUT: Duration = Duration::from_secs(120);
 const HEALTH_POLL: Duration = Duration::from_millis(250);
@@ -97,6 +96,20 @@ fn utc_timestamp(now: SystemTime) -> String {
     )
 }
 
+fn day_file(day: &str) -> String {
+    format!("ibid-{day}.log")
+}
+
+fn today() -> String {
+    utc_timestamp(SystemTime::now())[..10].to_string()
+}
+
+fn open_day_log(dir: &std::path::Path, day: &str) -> std::io::Result<(PathBuf, File)> {
+    let path = dir.join(day_file(day));
+    let file = OpenOptions::new().create(true).append(true).open(&path)?;
+    Ok((path, file))
+}
+
 /// Claim a free port by binding to :0 and letting the OS choose, then release
 /// it. There is a race window before the child binds; it is small and the
 /// alternative is a fixed port that collides with whatever else is running.
@@ -160,7 +173,9 @@ fn push_serve_args(command: &mut Command, port: u16, token: &str, hw: &HardwareI
         .arg("--vram-mb")
         .arg(hw.vram_mb.to_string())
         .arg("--gpu-backend")
-        .arg(&hw.gpu_backend);
+        .arg(&hw.gpu_backend)
+        .arg("--backend")
+        .arg("real");
 }
 
 impl Supervisor {
@@ -210,21 +225,25 @@ impl Supervisor {
 
     fn open_log_file(&self, dir: PathBuf) -> std::io::Result<()> {
         std::fs::create_dir_all(&dir)?;
-        let path = dir.join("ibid.log");
-        if std::fs::metadata(&path).map(|m| m.len() > LOG_FILE_MAX_BYTES).unwrap_or(false) {
-            std::fs::rename(&path, dir.join("ibid.1.log"))?;
-        }
-        let file = OpenOptions::new().create(true).append(true).open(&path)?;
-        *self.log_file.lock().expect("log file poisoned") = Some((path, file));
+        *self.log_file.lock().expect("log file poisoned") = Some(open_day_log(&dir, &today())?);
         Ok(())
     }
 
     /// The one funnel for logs: the shell's own events, the proxy's and every
-    /// line ragcore prints. Kept in memory for the Logs page and appended to disk.
+    /// line ragcore prints. Kept in memory for the Logs page and appended to
+    /// disk, one `ibid-YYYY-MM-DD.log` per UTC day.
     pub fn log(&self, line: String) {
-        let line = format!("{} {line}", utc_timestamp(SystemTime::now()));
-        if let Some((_, file)) = self.log_file.lock().expect("log file poisoned").as_mut() {
-            let _ = writeln!(file, "{line}");
+        let stamp = utc_timestamp(SystemTime::now());
+        let line = format!("{stamp} {line}");
+        if let Some(current) = self.log_file.lock().expect("log file poisoned").as_mut() {
+            if !current.0.ends_with(day_file(&stamp[..10])) {
+                if let Some(dir) = current.0.parent() {
+                    if let Ok(next) = open_day_log(dir, &stamp[..10]) {
+                        *current = next;
+                    }
+                }
+            }
+            let _ = writeln!(current.1, "{line}");
         }
         let mut inner = self.inner.lock().expect("sidecar state poisoned");
         if inner.logs.len() == LOG_CAPACITY {
@@ -590,6 +609,7 @@ mod tests {
         assert!(args.windows(2).any(|w| w == ["--ram-mb", "32768"]));
         assert!(args.windows(2).any(|w| w == ["--vram-mb", "32768"]));
         assert!(args.windows(2).any(|w| w == ["--gpu-backend", "metal"]));
+        assert!(args.windows(2).any(|w| w == ["--backend", "real"]));
     }
 
     #[test]

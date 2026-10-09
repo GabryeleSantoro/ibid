@@ -7,8 +7,11 @@ import { cn } from "@/lib/utils";
 export const SETTINGS_SECTIONS = [
   { slug: "general" },
   { slug: "connections" },
+  { slug: "appearance" },
+  { slug: "chat" },
   { slug: "retrieval" },
   { slug: "performance" },
+  { slug: "shortcuts" },
   { slug: "storage" },
   { slug: "updates" },
 ] as const;

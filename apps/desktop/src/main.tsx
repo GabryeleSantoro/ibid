@@ -6,11 +6,13 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { applyFontSize, getFontSize } from "@/lib/font-size";
 import { detectSystemLocale } from "@/lib/i18n";
 import { routeTree } from "./routeTree.gen";
 import "./app.css";
 
 void detectSystemLocale();
+applyFontSize(getFontSize());
 
 const queryClient = new QueryClient({
   defaultOptions: {

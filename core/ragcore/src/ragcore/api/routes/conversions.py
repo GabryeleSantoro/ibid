@@ -338,6 +338,13 @@ async def convert_slides(
             409, "no_active_connection", "Connect a generation model before converting slides"
         )
 
+    if active.kind == "local":
+        raise api_error(
+            409,
+            "local_model_unsupported_for_slides",
+            "Slide conversion needs a service connection; the built-in model is too small for it",
+        )
+
     probe = await probe_connection(
         active.kind, active.base_url, active.model_id, store.secrets.get(active.id)
     )

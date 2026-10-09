@@ -173,7 +173,7 @@ def test_activating_a_connection_deactivates_the_others(client) -> None:
 
     assert activated["active"] is True
     assert client.get("/settings").json()["active_connection_id"] == second["id"]
-    states = {c["id"]: c["active"] for c in client.get("/connections").json()}
+    states = {c["id"]: c["active"] for c in client.get("/connections").json() if c["id"] != "local"}
     assert states == {first["id"]: False, second["id"]: True}
 
 
@@ -191,7 +191,7 @@ def test_deleting_the_last_connection_leaves_nothing_active(client) -> None:
 
     assert client.delete(f"/connections/{connection['id']}").json() == {"ok": True}
 
-    assert client.get("/connections").json() == []
+    assert [c for c in client.get("/connections").json() if c["id"] != "local"] == []
     assert client.get("/settings").json()["active_connection_id"] is None
 
 
@@ -294,7 +294,9 @@ def test_a_connection_can_be_probed_before_it_is_saved(client, monkeypatch) -> N
     ).json()
 
     assert result["ok"] is True
-    assert client.get("/connections").json() == [], "probing must not save anything"
+    assert [
+        c for c in client.get("/connections").json() if c["id"] != "local"
+    ] == [], "probing must not save anything"
 
 
 def test_the_probe_matches_a_model_id_by_substring(client, monkeypatch) -> None:
@@ -342,7 +344,7 @@ def test_connections_survive_a_restart_but_their_keys_do_not(client, tmp_path) -
 
     with TestClient(create_app(client.app.state.config)) as restarted:
         restarted.headers["Authorization"] = client.headers["Authorization"]
-        [reloaded] = restarted.get("/connections").json()
+        [reloaded] = [c for c in restarted.get("/connections").json() if c["id"] != "local"]
         store = restarted.app.state.store
 
         assert reloaded == created

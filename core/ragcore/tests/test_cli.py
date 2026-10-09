@@ -221,3 +221,15 @@ def test_ask_on_an_empty_index_says_so(
 
     assert code == 1
     assert "no documents" in capsys.readouterr().out.lower()
+
+
+def test_ask_stops_the_built_in_model_so_no_server_outlives_the_command(
+    tmp_path: Path, fake_models: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stops: list[int] = []
+    monkeypatch.setattr("ragcore.local_llm.LocalLLM.stop", lambda self: stops.append(1))
+    main(["index", str(corpus(tmp_path)), "--data-dir", str(tmp_path / "data")])
+
+    main(["ask", "what do cross encoders do", "--data-dir", str(tmp_path / "data")])
+
+    assert stops == [1]

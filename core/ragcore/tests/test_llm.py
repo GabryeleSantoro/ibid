@@ -384,3 +384,98 @@ def test_other_languages_add_one_instruction_and_keep_the_citation_format() -> N
         "Write the answer in Italian. Keep the [document_id:page] markers unchanged."
     )
     assert "Write the answer in German." in system_prompt_for("de")
+
+
+import contextlib  # noqa: E402
+
+from ragcore.local_connection import local_connection  # noqa: E402
+
+
+class _FakeLocal:
+    def __init__(self, state: str = "ready") -> None:
+        self.state = state
+        self.leases = 0
+        self.released = 0
+
+    def status(self) -> str:
+        return self.state
+
+    @contextlib.asynccontextmanager
+    async def lease(self):
+        self.leases += 1
+        try:
+            yield "http://127.0.0.1:9"
+        finally:
+            self.released += 1
+
+
+def test_local_streams_from_the_leased_server_without_auth() -> None:
+    fake = _FakeLocal()
+
+    pieces, captured = run(local_connection(active=True), api_key=None, local=fake)
+
+    assert pieces == ["hello"]
+    assert captured["url"] == "http://127.0.0.1:9/v1/chat/completions"
+    assert "Authorization" not in captured["headers"]
+    assert captured["payload"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert captured["payload"]["max_tokens"] == 1024
+    assert fake.leases == 1 and fake.released == 1
+
+
+def test_local_without_the_model_installed_says_so() -> None:
+    with pytest.raises(llm.LlmError) as raised:
+        run(local_connection(active=True), api_key=None, local=_FakeLocal("missing"))
+
+    assert raised.value.code == "local_model_missing"
+
+
+def test_closing_a_local_stream_early_releases_the_lease() -> None:
+    fake = _FakeLocal()
+    lines = [
+        'data: {"choices": [{"delta": {"content": "a"}}]}',
+        'data: {"choices": [{"delta": {"content": "b"}}]}',
+        "data: [DONE]",
+    ]
+
+    async def scenario() -> None:
+        stream = llm.llm_stream(local_connection(active=True), None, "q", [], local=fake)
+        assert await anext(stream) == "a"
+        await stream.aclose()
+
+    original = llm.httpx.AsyncClient
+    llm.httpx.AsyncClient = lambda **_: _FakeClient({}, lines)
+    try:
+        asyncio.run(scenario())
+    finally:
+        llm.httpx.AsyncClient = original
+
+    assert fake.released == 1
+
+
+def test_a_local_server_that_fails_to_start_is_reported_as_a_coded_error() -> None:
+    class _Broken(_FakeLocal):
+        @contextlib.asynccontextmanager
+        async def lease(self):
+            raise RuntimeError("llama-server did not become healthy")
+            yield  # pragma: no cover
+
+    with pytest.raises(llm.LlmError) as raised:
+        run(local_connection(active=True), api_key=None, local=_Broken())
+
+    assert raised.value.code == "local_model_failed"
+    assert "did not become healthy" in raised.value.params["reason"]
+
+
+def test_extra_instructions_follow_the_grounding_rules() -> None:
+    from ragcore.llm import SYSTEM_PROMPT, system_prompt_for
+
+    prompt = system_prompt_for(None, "Keep it short {x}\nUse bullets.")
+    assert prompt.startswith(SYSTEM_PROMPT)
+    assert prompt.endswith("Keep it short {x}\nUse bullets.")
+
+
+def test_blank_extra_instructions_change_nothing() -> None:
+    from ragcore.llm import SYSTEM_PROMPT, system_prompt_for
+
+    assert system_prompt_for(None, "   \n") == SYSTEM_PROMPT
+    assert system_prompt_for("fr", "") == system_prompt_for("fr")

@@ -32,6 +32,7 @@ from ragcore.api.schemas import (
     SourceCreate,
 )
 from ragcore.config import Config
+from ragcore.local_connection import LOCAL_ID, local_connection
 from ragcore.stub.corpus import LoadedDoc, find_fixture_dir, load_corpus
 from ragcore.stub.retrieval import Retriever
 
@@ -495,4 +496,7 @@ class Store:
 
     def active_connection(self) -> Connection | None:
         """The one connection that answers, chosen by the user in the app."""
-        return self.connections.get(self.settings.active_connection_id or "")
+        active_id = self.settings.active_connection_id or ""
+        if active_id == LOCAL_ID:
+            return local_connection(active=True)
+        return self.connections.get(active_id)

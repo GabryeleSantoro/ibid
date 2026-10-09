@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Composer } from "@/features/chat/composer";
 import { AssistantMessage, UserMessage } from "@/features/chat/message";
+import { SlowSpeedBanner } from "@/features/chat/slow-speed-banner";
 import { SourcePanel } from "@/features/chat/source-panel";
 import { useChat } from "@/features/chat/use-chat";
 import type { CitationTarget } from "@/features/chat/answer-text";
@@ -245,6 +246,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
                   error={pending.error}
                   onSelectCitation={onSelectCitation}
                 />
+                <SlowSpeedBanner done={pending.status === "done"} tokensPerS={pending.tokensPerS} />
               </>
             ) : null}
 

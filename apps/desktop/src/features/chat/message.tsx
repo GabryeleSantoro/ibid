@@ -94,6 +94,12 @@ export function AssistantMessage({
               : t("chat.searchingIndex")}
           </span>
         ) : null}
+        {streaming && !text ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2Icon className="size-3 animate-spin" />
+            {t("chat.waitingModel")}
+          </span>
+        ) : null}
         {!retrieving && chunks.length > 0 ? (
           <span className="text-[0.6875rem] text-muted-foreground">
             {t("chat.passages", { count: chunks.length })}

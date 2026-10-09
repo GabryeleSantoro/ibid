@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, Query, Request
+from pydantic import BaseModel
 
 from ragcore.api.deps import ConfigDep, JobsDep, StoreDep
 from ragcore.api.errors import api_error
@@ -39,6 +40,27 @@ def inventory(store: StoreDep) -> ModelInventory:
         active_embedding=_active(store, "embedding"),
         active_reranking=_active(store, "reranking"),
     )
+
+
+class RuntimeStatus(BaseModel):
+    state: str  # missing | downloading | ready | unavailable (stub backend)
+    progress: float
+    error: str | None = None
+
+
+@router.get("/runtime", response_model=RuntimeStatus)
+def runtime_status(request: Request) -> RuntimeStatus:
+    servers = request.app.state.servers
+    if servers is None:
+        return RuntimeStatus(state="unavailable", progress=0.0)
+    return RuntimeStatus(state=servers.status(), progress=servers.progress, error=servers.error)
+
+
+@router.post("/runtime/install", response_model=RuntimeStatus)
+async def runtime_install(request: Request) -> RuntimeStatus:
+    if request.app.state.servers:
+        request.app.state.servers.install()
+    return runtime_status(request)
 
 
 @router.get("/hardware", response_model=HardwareInfo)

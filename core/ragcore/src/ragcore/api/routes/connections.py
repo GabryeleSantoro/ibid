@@ -5,7 +5,7 @@ import time
 from datetime import UTC, datetime
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ragcore.api.deps import StoreDep
 from ragcore.api.errors import api_error
@@ -17,6 +17,7 @@ from ragcore.api.schemas import (
     ConnectionTestResult,
     Ok,
 )
+from ragcore.local_connection import LOCAL_ID, local_connection
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -31,7 +32,8 @@ def _is_remote(kind: str, base_url: str | None) -> bool:
 
 @router.get("", response_model=list[Connection])
 def list_connections(store: StoreDep) -> list[Connection]:
-    return list(store.connections.values())
+    local = local_connection(active=store.settings.active_connection_id == LOCAL_ID)
+    return [local, *store.connections.values()]
 
 
 @router.post("", response_model=Connection, status_code=201)
@@ -41,7 +43,7 @@ def create_connection(payload: ConnectionInput, store: StoreDep) -> Connection:
     connection = Connection(
         id=store.new_id("conn"),
         has_api_key=bool(payload.api_key),
-        active=not store.connections,
+        active=not store.connections and store.settings.active_connection_id is None,
         created_at=datetime.now(tz=UTC),
         **data,
     )
@@ -75,7 +77,15 @@ def update_connection(
 
 
 @router.post("/{connection_id}/activate", response_model=Connection)
-def activate(connection_id: str, store: StoreDep) -> Connection:
+def activate(connection_id: str, store: StoreDep, request: Request) -> Connection:
+    if connection_id == LOCAL_ID:
+        if request.app.state.local_llm.status() != "ready":
+            raise api_error(409, "local_model_missing", "install the built-in model first")
+        for other in store.connections.values():
+            other.active = False
+        store.settings.active_connection_id = LOCAL_ID
+        store.save_connections()
+        return local_connection(active=True)
     connection = store.connections.get(connection_id)
     if connection is None:
         raise api_error(404, "connection_not_found", "connection not found")

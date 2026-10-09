@@ -74,7 +74,7 @@ def model_status(request: Request):
 
 
 @router.post("/model", response_model=ModelStatus)
-def model_install(request: Request):
+async def model_install(request: Request):
     request.app.state.local_llm.install()
     return model_status(request)
 

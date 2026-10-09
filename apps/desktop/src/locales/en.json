@@ -52,7 +52,10 @@
     "llm_budget_spent": "{{name}} used its whole output budget without writing any text, most likely on reasoning. Raise or clear Max output tokens, or lower Thinking.",
     "llm_stream_cut": "{{name}} closed the stream after {{seconds}}s with no text, most likely still reasoning when the provider cut it off. Lower Thinking, use a non-reasoning model, or convert fewer slides at a time.",
     "llm_empty_answer": "{{name}} returned an empty answer (finish reason: {{finish}})",
-    "model_role_active": "Activate another model for this role first"
+    "model_role_active": "Activate another model for this role first",
+    "local_model_missing": "The built-in model is not installed. Install it in Settings → Connections.",
+    "local_model_failed": "The built-in model could not start: {{reason}}",
+    "local_model_unsupported_for_slides": "Slide conversion needs a service connection; the built-in model is too small for it."
   },
   "settings": {
     "language": {
@@ -84,6 +87,18 @@
       "updates": {
         "label": "Updates",
         "blurb": "Version in use, and how new ones arrive."
+      },
+      "appearance": {
+        "label": "Appearance",
+        "blurb": "Theme and text size."
+      },
+      "chat": {
+        "label": "Chat",
+        "blurb": "Defaults for how answers are written."
+      },
+      "shortcuts": {
+        "label": "Shortcuts",
+        "blurb": "Keyboard shortcuts that work anywhere in the app."
       }
     },
     "saved": "Settings saved",
@@ -153,6 +168,32 @@
       "checking": "Checking…",
       "check": "Check for updates",
       "current": "Current version {{version}}"
+    },
+    "appearance": {
+      "theme": "Theme",
+      "fontSize": "Text size",
+      "fontSizeHint": "Scales the whole interface.",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "chat": {
+      "extra": "Extra instructions",
+      "extraHint": "Added to every question. Answers still only use your documents and keep their citations.",
+      "extraPlaceholder": "e.g. Keep answers short and use bullet points."
+    },
+    "shortcuts": {
+      "newChat": "New chat",
+      "focusComposer": "Focus the question box",
+      "openSettings": "Open Settings",
+      "goChat": "Go to Chat",
+      "goLibrary": "Go to Library",
+      "goConvert": "Go to Slides to text"
+    },
+    "startup": {
+      "label": "Launch at login",
+      "hint": "Open Ibid when you sign in to your computer.",
+      "failed": "Could not change the login setting"
     }
   },
   "nav": {
@@ -307,7 +348,10 @@
       "embeddingWhy": "Turns every chunk and every question into a vector. Swapping it later means re-indexing.",
       "rerankingWhy": "Reads the question and each candidate together, then reorders them. This is what keeps answers on topic.",
       "downloadFailed": "Could not start the {{role}} download",
-      "verified": "verified"
+      "verified": "verified",
+      "runtimeInstall": "Download models",
+      "runtimeDownloading": "Downloading… {{percent}}%",
+      "runtimeFailed": "Download failed: {{error}}"
     },
     "connection": {
       "title": "Who writes the answers",
@@ -446,7 +490,8 @@
       "offer": "Get better questions written by a small local model (1.1 GB download)",
       "downloading": "Downloading the question model… {{percent}}%",
       "failed": "Download failed: {{error}}"
-    }
+    },
+    "waitingModel": "Waiting for the model…"
   },
   "documentStatus": {
     "queued": "queued",
@@ -696,5 +741,18 @@
     "environmentHint": "Detected hardware and the build in use.",
     "recentLog": "Recent log",
     "recentLogHint": "Everything the app, the proxy and the core logged. The Logs page has the full view."
+  },
+  "localModel": {
+    "name": "This computer",
+    "blurb": "Private: nothing leaves this computer",
+    "install": "Install (~1.1 GB)",
+    "downloading": "Downloading {{percent}}%",
+    "failed": "Download failed: {{error}}"
+  },
+  "slowSpeed": {
+    "text": "Answers are slow on this computer (~{{speed}} tok/s). A cloud model would be faster.",
+    "privacy": "With OpenRouter, the retrieved passages are sent to the provider.",
+    "openrouter": "Set up OpenRouter",
+    "keep": "Keep using this computer"
   }
 }

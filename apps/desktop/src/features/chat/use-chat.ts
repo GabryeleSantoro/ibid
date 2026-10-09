@@ -25,6 +25,7 @@ export type PendingAnswer = {
   grounding: Grounding | null;
   latency: StageLatency | null;
   remote: boolean;
+  tokensPerS: number | null;
   error: string | null;
 };
 
@@ -40,6 +41,7 @@ const EMPTY: Omit<PendingAnswer, "question"> = {
   grounding: null,
   latency: null,
   remote: false,
+  tokensPerS: null,
   error: null,
 };
 
@@ -101,6 +103,7 @@ export function useChat(sessionId: string | null) {
                     status: "done",
                     latency: frame.data.latency,
                     remote: frame.data.remote,
+                    tokensPerS: frame.data.tokens_per_s,
                   };
                 case "error":
                   return { ...current, status: "error", error: frame.data.message };

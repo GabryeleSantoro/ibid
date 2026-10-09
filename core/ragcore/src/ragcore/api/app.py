@@ -29,7 +29,6 @@ from ragcore.api.routes import (
 )
 from ragcore.backend import build_backend
 from ragcore.config import Config
-from ragcore.local_llm import LocalLLM
 
 # Everything else needs the session token the Rust shell generated at spawn.
 PUBLIC_PATHS = {"/health", "/openapi.json", "/docs", "/redoc", "/docs/oauth2-redirect"}
@@ -49,10 +48,15 @@ def create_app(config: Config) -> FastAPI:
         app.state.jobs = backend.jobs
         app.state.hub = backend.hub
         app.state.answerer = backend.answerer
-        app.state.local_llm = LocalLLM(config.data_dir)
+        app.state.local_llm = backend.local_llm
+        app.state.servers = backend.servers
+        if backend.servers:
+            await backend.servers.start()
         try:
             yield
         finally:
+            if backend.servers:
+                backend.servers.stop()
             app.state.local_llm.stop()
             await backend.jobs.shutdown()
             await backend.hub.aclose()

@@ -123,14 +123,29 @@ function TestResult({ result }: { result: ConnectionTestResult }) {
 export function ConnectionDialog({
   connection,
   trigger,
+  preset,
 }: {
   connection?: Connection;
   trigger: React.ReactNode;
+  /** Opens as a new OpenRouter connection for this model. */
+  preset?: { model_id: string };
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(() => ({ ...BLANK, ...(connection ?? {}) }));
+  const [form, setForm] = useState(() => ({
+    ...BLANK,
+    ...(connection ?? {}),
+    ...(preset
+      ? {
+          name: "OpenRouter",
+          kind: "openai-compatible" as ConnectionKind,
+          base_url: "https://openrouter.ai/api/v1",
+          is_remote: true,
+          model_id: preset.model_id,
+        }
+      : {}),
+  }));
   const [provider, setProvider] = useState(() => matchProvider(form.kind, form.base_url));
   const [providerOrderText, setProviderOrderText] = useState(() =>
     (form.provider_order ?? []).join(", "),
@@ -179,6 +194,8 @@ export function ConnectionDialog({
       // The keychain is the durable copy; the sidecar got a memory-only one in
       // the payload above, because the sidecar is what calls the provider.
       if (apiKey) await shell.keychainSet(saved.id, apiKey);
+      // The slow-speed banner's shortcut exists to switch models, so the new one answers next.
+      if (preset) await api.activateConnection(saved.id);
       return saved;
     },
     onSuccess: () => {

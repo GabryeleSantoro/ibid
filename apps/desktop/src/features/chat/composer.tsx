@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { IconTooltip } from "@/components/ui/tooltip";
+import { COMPOSER_FOCUS_EVENT } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 const MAX_ROWS_PX = 180;
@@ -34,6 +35,13 @@ export function Composer({
     element.style.height = "auto";
     element.style.height = `${Math.min(element.scrollHeight, MAX_ROWS_PX)}px`;
   }, [value]);
+
+  useEffect(() => {
+    // Deferred a tick: after a route change the textarea may not be mounted yet.
+    const focus = () => setTimeout(() => ref.current?.focus(), 0);
+    window.addEventListener(COMPOSER_FOCUS_EVENT, focus);
+    return () => window.removeEventListener(COMPOSER_FOCUS_EVENT, focus);
+  }, []);
 
   const submit = () => {
     const text = value.trim();

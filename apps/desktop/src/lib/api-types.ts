@@ -728,6 +728,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/suggestions/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model Status */
+        get: operations["model_status_suggestions_model_get"];
+        put?: never;
+        /** Model Install */
+        post: operations["model_install_suggestions_model_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest */
+        post: operations["suggest_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -750,6 +785,11 @@ export interface components {
             telemetry: boolean;
             retrieval?: components["schemas"]["RetrievalSettings"];
             performance?: components["schemas"]["PerformanceSettings"];
+            /**
+             * Chat Extra Instructions
+             * @default
+             */
+            chat_extra_instructions: string;
         };
         /** AppSettingsPatch */
         AppSettingsPatch: {
@@ -763,6 +803,8 @@ export interface components {
             telemetry?: boolean | null;
             retrieval?: components["schemas"]["RetrievalSettings"] | null;
             performance?: components["schemas"]["PerformanceSettings"] | null;
+            /** Chat Extra Instructions */
+            chat_extra_instructions?: string | null;
         };
         /** ChatMessage */
         ChatMessage: {
@@ -933,7 +975,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "openai-compatible" | "anthropic";
+            kind: "openai-compatible" | "anthropic" | "local";
             /** Base Url */
             base_url?: string | null;
             /** Model Id */
@@ -969,7 +1011,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "openai-compatible" | "anthropic";
+            kind: "openai-compatible" | "anthropic" | "local";
             /** Base Url */
             base_url?: string | null;
             /** Model Id */
@@ -1013,7 +1055,7 @@ export interface components {
             /** Connection Id */
             connection_id?: string | null;
             /** Kind */
-            kind?: ("openai-compatible" | "anthropic") | null;
+            kind?: ("openai-compatible" | "anthropic" | "local") | null;
             /** Base Url */
             base_url?: string | null;
             /** Model Id */
@@ -1172,6 +1214,8 @@ export interface components {
              * @default false
              */
             remote: boolean;
+            /** Tokens Per S */
+            tokens_per_s?: number | null;
         };
         /** DownloadRequest */
         DownloadRequest: {
@@ -1585,6 +1629,15 @@ export interface components {
             /** Active Reranking */
             active_reranking?: string | null;
         };
+        /** ModelStatus */
+        ModelStatus: {
+            /** State */
+            state: string;
+            /** Progress */
+            progress: number;
+            /** Error */
+            error?: string | null;
+        };
         /** Ok */
         Ok: {
             /**
@@ -1961,6 +2014,25 @@ export interface components {
             conversion_saved?: components["schemas"]["ConversionSavedEvent"] | null;
             presentation_error?: components["schemas"]["PresentationErrorEvent"] | null;
             conversion_done?: components["schemas"]["ConversionDoneEvent"] | null;
+        };
+        /** SuggestionRequest */
+        SuggestionRequest: {
+            /** Doc Ids */
+            doc_ids?: string[];
+        };
+        /** Suggestions */
+        Suggestions: {
+            /** Questions */
+            questions: string[];
+            /** Topics */
+            topics: string[];
+            /** Language */
+            language?: string | null;
+            /**
+             * Source
+             * @default headings
+             */
+            source: string;
         };
         /** TokenEvent */
         TokenEvent: {
@@ -3552,6 +3624,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Ok"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_status_suggestions_model_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelStatus"];
+                };
+            };
+        };
+    };
+    model_install_suggestions_model_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelStatus"];
+                };
+            };
+        };
+    };
+    suggest_suggestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
                 };
             };
             /** @description Validation Error */

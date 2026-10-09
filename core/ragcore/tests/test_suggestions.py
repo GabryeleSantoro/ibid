@@ -36,3 +36,20 @@ def test_local_model_questions_replace_the_templates_when_installed(client) -> N
 
     assert body["source"] == "model"
     assert body["questions"] == ["What is A?", "What is B?", "What is C?"]
+
+
+def test_install_routes_start_downloads_inside_the_event_loop(tmp_path, monkeypatch):
+    """Sync routes run in a thread with no loop; create_task there 500s."""
+    from fastapi.testclient import TestClient
+    from ragcore.api.app import create_app
+    from ragcore.config import Config
+    from ragcore.local_llm import LocalLLM
+
+    async def noop(self):
+        pass
+
+    monkeypatch.setattr(LocalLLM, "_install", noop)
+    config = Config(token="t", data_dir=tmp_path)
+    with TestClient(create_app(config)) as client:
+        response = client.post("/suggestions/model", headers={"Authorization": "Bearer t"})
+    assert response.status_code == 200

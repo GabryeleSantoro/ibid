@@ -15,6 +15,8 @@ export const keys = {
   sidecars: ["sidecars"] as const,
   logs: ["sidecar-logs"] as const,
   settings: ["settings"] as const,
+  localModel: ["local-model"] as const,
+  runtime: ["runtime"] as const,
   sources: ["sources"] as const,
   folders: ["folders"] as const,
   documents: (params: Record<string, unknown>) => ["documents", params] as const,
@@ -90,6 +92,12 @@ export const evalSetsQuery = queryOptions({
   queryKey: keys.evalSets,
   queryFn: api.evalSets,
   staleTime: Infinity,
+});
+
+export const runtimeQuery = queryOptions({
+  queryKey: keys.runtime,
+  queryFn: api.runtime,
+  refetchInterval: (query) => (query.state.data?.state === "downloading" ? 1000 : false),
 });
 
 export const modelsQuery = queryOptions({

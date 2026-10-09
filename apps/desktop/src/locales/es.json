@@ -52,7 +52,10 @@
     "llm_budget_spent": "{{name}} agotó todo su presupuesto de salida sin escribir texto, probablemente por el razonamiento. Subir o quitar los tokens máximos de salida, o bajar el razonamiento.",
     "llm_stream_cut": "{{name}} cerró el flujo tras {{seconds}} s sin texto, probablemente aún razonando cuando el proveedor lo cortó. Bajar el razonamiento, usar un modelo sin razonamiento o convertir menos diapositivas a la vez.",
     "llm_empty_answer": "{{name}} devolvió una respuesta vacía (motivo de finalización: {{finish}})",
-    "model_role_active": "Primero activar otro modelo para este rol"
+    "model_role_active": "Primero activar otro modelo para este rol",
+    "local_model_missing": "El modelo integrado no está instalado. Instálalo en Ajustes → Conexiones.",
+    "local_model_failed": "No se pudo iniciar el modelo integrado: {{reason}}",
+    "local_model_unsupported_for_slides": "La conversión de diapositivas requiere una conexión a un servicio; el modelo integrado es demasiado pequeño."
   },
   "settings": {
     "language": {
@@ -84,6 +87,18 @@
       "updates": {
         "label": "Actualizaciones",
         "blurb": "Versión en uso y cómo llegan las nuevas."
+      },
+      "appearance": {
+        "label": "Apariencia",
+        "blurb": "Tema y tamaño del texto."
+      },
+      "chat": {
+        "label": "Chat",
+        "blurb": "Valores predeterminados para cómo se redactan las respuestas."
+      },
+      "shortcuts": {
+        "label": "Atajos",
+        "blurb": "Atajos de teclado que funcionan en toda la app."
       }
     },
     "saved": "Ajustes guardados",
@@ -153,6 +168,32 @@
       "checking": "Comprobando…",
       "check": "Buscar actualizaciones",
       "current": "Versión actual {{version}}"
+    },
+    "appearance": {
+      "theme": "Tema",
+      "fontSize": "Tamaño del texto",
+      "fontSizeHint": "Escala toda la interfaz.",
+      "small": "Pequeño",
+      "medium": "Mediano",
+      "large": "Grande"
+    },
+    "chat": {
+      "extra": "Instrucciones adicionales",
+      "extraHint": "Se añaden a cada pregunta. Las respuestas siguen usando solo tus documentos y mantienen sus citas.",
+      "extraPlaceholder": "p. ej. Respuestas cortas con viñetas."
+    },
+    "shortcuts": {
+      "newChat": "Nuevo chat",
+      "focusComposer": "Ir al cuadro de pregunta",
+      "openSettings": "Abrir Ajustes",
+      "goChat": "Ir a Chat",
+      "goLibrary": "Ir a Biblioteca",
+      "goConvert": "Ir a Diapositivas → texto"
+    },
+    "startup": {
+      "label": "Abrir al iniciar sesión",
+      "hint": "Abre Ibid cuando inicias sesión en tu equipo.",
+      "failed": "No se pudo cambiar el ajuste de inicio"
     }
   },
   "nav": {
@@ -307,7 +348,10 @@
       "embeddingWhy": "Convierte cada fragmento y cada pregunta en un vector. Cambiarlo después obliga a reindexar.",
       "rerankingWhy": "Lee juntas la pregunta y cada candidato y los reordena. Es lo que mantiene las respuestas en el tema.",
       "downloadFailed": "No se pudo iniciar la descarga del modelo {{role}}",
-      "verified": "verificado"
+      "verified": "verificado",
+      "runtimeInstall": "Descargar modelos",
+      "runtimeDownloading": "Descargando… {{percent}}%",
+      "runtimeFailed": "Descarga fallida: {{error}}"
     },
     "connection": {
       "title": "Quién escribe las respuestas",
@@ -446,7 +490,8 @@
       "offer": "Obtén mejores preguntas escritas por un pequeño modelo local (descarga de 1,1 GB)",
       "downloading": "Descargando el modelo de preguntas… {{percent}} %",
       "failed": "Descarga fallida: {{error}}"
-    }
+    },
+    "waitingModel": "Esperando al modelo…"
   },
   "documentStatus": {
     "queued": "en cola",
@@ -696,5 +741,18 @@
     "environmentHint": "Hardware detectado y compilación en uso.",
     "recentLog": "Registro reciente",
     "recentLogHint": "Todo lo que app, proxy y núcleo han registrado. La página Registros tiene la vista completa."
+  },
+  "localModel": {
+    "name": "Este ordenador",
+    "blurb": "Privado: nada sale de este ordenador",
+    "install": "Instalar (~1,1 GB)",
+    "downloading": "Descargando {{percent}} %",
+    "failed": "Error de descarga: {{error}}"
+  },
+  "slowSpeed": {
+    "text": "Las respuestas son lentas en este ordenador (~{{speed}} tok/s). Un modelo en la nube sería más rápido.",
+    "privacy": "Con OpenRouter, los pasajes recuperados se envían al proveedor.",
+    "openrouter": "Configurar OpenRouter",
+    "keep": "Seguir usando este ordenador"
   }
 }

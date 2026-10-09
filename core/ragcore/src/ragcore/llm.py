@@ -8,6 +8,7 @@ answers, where it lives and with which key comes from the connection alone.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -25,15 +26,21 @@ cite nothing. Do not invent document ids."""
 LANGUAGE_NAMES = {"it": "Italian", "fr": "French", "de": "German", "es": "Spanish"}
 
 
-def system_prompt_for(lang: str | None) -> str:
-    """The answer prompt, told to write in the UI language. English adds nothing."""
+def system_prompt_for(lang: str | None, extra: str = "") -> str:
+    """The answer prompt, told to write in the UI language, plus the user's own notes.
+
+    The user's text goes last and after the grounding rules, which are not editable.
+    English with no notes adds nothing.
+    """
+    prompt = SYSTEM_PROMPT
     name = LANGUAGE_NAMES.get(lang or "")
-    if name is None:
-        return SYSTEM_PROMPT
-    return (
-        f"{SYSTEM_PROMPT}\nWrite the answer in {name}. "
-        "Keep the [document_id:page] markers unchanged."
-    )
+    if name is not None:
+        prompt = (
+            f"{prompt}\nWrite the answer in {name}. "
+            "Keep the [document_id:page] markers unchanged."
+        )
+    extra = extra.strip()
+    return f"{prompt}\n{extra}" if extra else prompt
 
 
 
@@ -172,10 +179,11 @@ def _reasoning_len(kind: str, data: str) -> int:
         return 0
 
 
+LOCAL_MAX_TOKENS = 1024
 IDLE_TIMEOUT = 120.0  # seconds without a data line before a call is abandoned
 
 
-async def llm_stream(
+async def _stream(
     connection: Connection,
     api_key: str | None,
     question: str,
@@ -183,8 +191,8 @@ async def llm_stream(
     *,
     system_prompt: str | None = None,
     max_tokens: int | None = None,
+    extra_body: dict | None = None,
 ) -> AsyncIterator[str]:
-    """Stream from the connection the user activated, and from nothing else."""
     if connection.kind != "anthropic" and not connection.base_url:
         raise LlmError(
             "connection_no_url",
@@ -200,6 +208,7 @@ async def llm_stream(
         system_prompt or SYSTEM_PROMPT,
         max_tokens or connection.max_output_tokens,
     )
+    body.update(extra_body or {})
     cap = max_tokens or connection.max_output_tokens
     logger.info(
         "%s: calling %s at %s (%d passages, output cap %s)",
@@ -298,3 +307,51 @@ async def llm_stream(
             name=connection.name,
             finish=finish or "none",
         )
+
+
+async def llm_stream(
+    connection: Connection,
+    api_key: str | None,
+    question: str,
+    chunks: list[RetrievedChunk],
+    *,
+    system_prompt: str | None = None,
+    max_tokens: int | None = None,
+    local=None,
+) -> AsyncIterator[str]:
+    """Stream from the connection the user activated, and from nothing else."""
+    if connection.kind != "local":
+        async for piece in _stream(
+            connection,
+            api_key,
+            question,
+            chunks,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+        ):
+            yield piece
+        return
+    if local is None or local.status() != "ready":
+        raise LlmError("local_model_missing", "The built-in model is not installed")
+    async with contextlib.AsyncExitStack() as stack:
+        try:
+            base_url = await stack.enter_async_context(local.lease())
+        except (RuntimeError, OSError) as exc:
+            raise LlmError(
+                "local_model_failed",
+                f"The built-in model could not start: {exc}",
+                reason=str(exc),
+            ) from exc
+        served = connection.model_copy(
+            update={"kind": "openai-compatible", "base_url": f"{base_url}/v1"}
+        )
+        async for piece in _stream(
+            served,
+            None,
+            question,
+            chunks,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens or connection.max_output_tokens or LOCAL_MAX_TOKENS,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        ):
+            yield piece

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CloudIcon, HardDriveIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { toast } from "sonner";
 
 import { Page, PageBody, PageHeader } from "@/components/shell/page";
@@ -33,10 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { ConnectionDialog } from "@/features/settings/connection-dialog";
+import { useTheme, type Theme } from "@/components/shell/theme-provider";
+import { LocalModelControl } from "@/features/settings/local-model";
 import { SETTINGS_SECTIONS } from "@/features/settings/settings-sidebar";
 import { UpdatesSection } from "@/features/settings/updates";
 import {
@@ -55,15 +59,20 @@ import {
   setLanguagePref,
   type LanguagePref,
 } from "@/lib/i18n";
+import { getFontSize, setFontSize, type FontSize } from "@/lib/font-size";
+import { isMac } from "@/lib/platform";
+import { SHORTCUTS } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 function Field({
   label,
   hint,
+  wide,
   children,
 }: {
   label: string;
   hint?: string;
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -72,7 +81,7 @@ function Field({
         <Label className="text-[0.8125rem]">{label}</Label>
         {hint ? <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">{hint}</p> : null}
       </div>
-      <div className="max-w-xs">{children}</div>
+      <div className={wide ? "max-w-xl" : "max-w-xs"}>{children}</div>
     </div>
   );
 }
@@ -134,7 +143,9 @@ function ConnectionsSection() {
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="truncate text-[0.8125rem] font-medium">{connection.name}</p>
+              <p className="truncate text-[0.8125rem] font-medium">
+                {connection.kind === "local" ? t("localModel.name") : connection.name}
+              </p>
               {connection.active ? (
                 <span className="rounded-full bg-primary/12 px-1.5 py-0.5 text-[0.625rem] font-medium text-primary">
                   {t("common.active")}
@@ -147,20 +158,29 @@ function ConnectionsSection() {
                 </span>
               ) : null}
             </div>
-            <p className="truncate font-mono text-[0.625rem] text-muted-foreground">
-              {connection.model_id}
-              {connection.base_url ? ` · ${connection.base_url}` : ""}
-            </p>
-            <p className="mt-1 font-mono text-[0.625rem] text-muted-foreground tabular-nums">
-              {connection.max_output_tokens
-                ? t("settings.connections.outputLimit", {
-                    value: connection.max_output_tokens.toLocaleString(currentLanguage()),
-                  })
-                : t("settings.connections.noOutputLimit")}
-              {connection.has_api_key ? ` · ${t("settings.connections.keyInKeychain")}` : ""}
-            </p>
+            {connection.kind === "local" ? (
+              <p className="text-[0.6875rem] text-muted-foreground">{t("localModel.blurb")}</p>
+            ) : (
+              <>
+                <p className="truncate font-mono text-[0.625rem] text-muted-foreground">
+                  {connection.model_id}
+                  {connection.base_url ? ` · ${connection.base_url}` : ""}
+                </p>
+                <p className="mt-1 font-mono text-[0.625rem] text-muted-foreground tabular-nums">
+                  {connection.max_output_tokens
+                    ? t("settings.connections.outputLimit", {
+                        value: connection.max_output_tokens.toLocaleString(currentLanguage()),
+                      })
+                    : t("settings.connections.noOutputLimit")}
+                  {connection.has_api_key ? ` · ${t("settings.connections.keyInKeychain")}` : ""}
+                </p>
+              </>
+            )}
           </div>
 
+          {connection.kind === "local" ? (
+            <LocalModelControl connection={connection} />
+          ) : (
           <div className="flex shrink-0 items-center gap-1">
             {!connection.active ? (
               <Button
@@ -192,6 +212,7 @@ function ConnectionsSection() {
               </Button>
             </IconTooltip>
           </div>
+          )}
         </div>
       ))}
 
@@ -391,6 +412,34 @@ function PerformanceSection() {
   );
 }
 
+function LaunchAtLogin() {
+  const { t } = useTranslation();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    isEnabled()
+      .then(setEnabled)
+      .catch(() => setEnabled(null));
+  }, []);
+
+  const toggle = async (next: boolean) => {
+    try {
+      await (next ? enable() : disable());
+      setEnabled(next);
+    } catch (error) {
+      toast.error(t("settings.startup.failed"), { description: errorText(error) });
+    }
+  };
+
+  // Browser or dev without the shell: the plugin call rejects and the row stays hidden.
+  if (enabled === null) return null;
+  return (
+    <Field label={t("settings.startup.label")} hint={t("settings.startup.hint")}>
+      <Switch checked={enabled} onCheckedChange={toggle} />
+    </Field>
+  );
+}
+
 function GeneralSection() {
   const { t } = useTranslation();
   const [pref, setPref] = useState<LanguagePref>(getLanguagePref());
@@ -418,6 +467,92 @@ function GeneralSection() {
           </SelectContent>
         </Select>
       </Field>
+      <LaunchAtLogin />
+    </div>
+  );
+}
+
+function AppearanceSection() {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const [size, setSize] = useState<FontSize>(getFontSize());
+
+  return (
+    <div className="space-y-6">
+      <Field label={t("settings.appearance.theme")}>
+        <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="system">{t("nav.themeSystem")}</SelectItem>
+            <SelectItem value="light">{t("nav.themeLight")}</SelectItem>
+            <SelectItem value="dark">{t("nav.themeDark")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field label={t("settings.appearance.fontSize")} hint={t("settings.appearance.fontSizeHint")}>
+        <Select
+          value={size}
+          onValueChange={(value) => {
+            setSize(value as FontSize);
+            setFontSize(value as FontSize);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="s">{t("settings.appearance.small")}</SelectItem>
+            <SelectItem value="m">{t("settings.appearance.medium")}</SelectItem>
+            <SelectItem value="l">{t("settings.appearance.large")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+    </div>
+  );
+}
+
+function ChatSection() {
+  const { t } = useTranslation();
+  const { draft, setDraft, save } = useSettingsDraft();
+  if (!draft) return <Skeleton className="h-40 w-full" />;
+
+  return (
+    <div className="space-y-6">
+      <Field label={t("settings.chat.extra")} hint={t("settings.chat.extraHint")} wide>
+        <Textarea
+          rows={5}
+          maxLength={1000}
+          placeholder={t("settings.chat.extraPlaceholder")}
+          value={draft.chat_extra_instructions}
+          onChange={(event) => setDraft({ ...draft, chat_extra_instructions: event.target.value })}
+        />
+      </Field>
+      <Button
+        disabled={save.isPending}
+        onClick={() => save.mutate({ chat_extra_instructions: draft.chat_extra_instructions })}
+      >
+        {t("common.save")}
+      </Button>
+    </div>
+  );
+}
+
+function ShortcutsSection() {
+  const { t } = useTranslation();
+  const mod = isMac ? "⌘" : "Ctrl+";
+  return (
+    <div className="max-w-md divide-y rounded-lg border">
+      {SHORTCUTS.map((shortcut) => (
+        <div key={shortcut.id} className="flex items-center justify-between px-3 py-2 text-[0.8125rem]">
+          <span>{t(`settings.shortcuts.${shortcut.id}`)}</span>
+          <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem]">
+            {mod}
+            {shortcut.key.toUpperCase()}
+          </kbd>
+        </div>
+      ))}
     </div>
   );
 }
@@ -517,8 +652,11 @@ export function SettingsPanel() {
         <div className="max-w-3xl p-5">
           {section === "general" ? <GeneralSection /> : null}
           {section === "connections" ? <ConnectionsSection /> : null}
+          {section === "appearance" ? <AppearanceSection /> : null}
+          {section === "chat" ? <ChatSection /> : null}
           {section === "retrieval" ? <RetrievalSection /> : null}
           {section === "performance" ? <PerformanceSection /> : null}
+          {section === "shortcuts" ? <ShortcutsSection /> : null}
           {section === "storage" ? <StorageSection /> : null}
           {section === "updates" ? <UpdatesSection /> : null}
         </div>

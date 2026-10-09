@@ -230,7 +230,9 @@ def test_wipe_sends_the_user_back_through_onboarding(client: TestClient) -> None
     settings = client.get("/settings").json()
     assert settings["onboarded"] is False
     assert client.get("/documents").json()["total"] == 0
-    assert client.get("/connections").json(), "connections were meant to be kept"
+    assert [
+        c for c in client.get("/connections").json() if c["id"] != "local"
+    ], "connections were meant to be kept"
 
 
 @both_backends

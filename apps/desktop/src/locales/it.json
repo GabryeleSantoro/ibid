@@ -52,7 +52,10 @@
     "llm_budget_spent": "{{name}} ha esaurito l'intero budget di output senza scrivere testo, probabilmente per il ragionamento. Aumentare o rimuovere i token massimi in uscita, o abbassare il ragionamento.",
     "llm_stream_cut": "{{name}} ha chiuso il flusso dopo {{seconds}} s senza testo, probabilmente ancora in fase di ragionamento quando il provider l'ha interrotto. Abbassare il ragionamento, usare un modello senza ragionamento o convertire meno slide alla volta.",
     "llm_empty_answer": "{{name}} ha restituito una risposta vuota (motivo di fine: {{finish}})",
-    "model_role_active": "Prima attivare un altro modello per questo ruolo"
+    "model_role_active": "Prima attivare un altro modello per questo ruolo",
+    "local_model_missing": "Il modello integrato non è installato. Installalo in Impostazioni → Connessioni.",
+    "local_model_failed": "Impossibile avviare il modello integrato: {{reason}}",
+    "local_model_unsupported_for_slides": "La conversione delle slide richiede una connessione a un servizio; il modello integrato è troppo piccolo."
   },
   "settings": {
     "language": {
@@ -84,6 +87,18 @@
       "updates": {
         "label": "Aggiornamenti",
         "blurb": "Versione in uso e come arrivano le nuove."
+      },
+      "appearance": {
+        "label": "Aspetto",
+        "blurb": "Tema e dimensione del testo."
+      },
+      "chat": {
+        "label": "Chat",
+        "blurb": "Impostazioni predefinite per come vengono scritte le risposte."
+      },
+      "shortcuts": {
+        "label": "Scorciatoie",
+        "blurb": "Scorciatoie da tastiera valide in tutta l'app."
       }
     },
     "saved": "Impostazioni salvate",
@@ -153,6 +168,32 @@
       "checking": "Controllo…",
       "check": "Controlla aggiornamenti",
       "current": "Versione attuale {{version}}"
+    },
+    "appearance": {
+      "theme": "Tema",
+      "fontSize": "Dimensione del testo",
+      "fontSizeHint": "Ridimensiona tutta l'interfaccia.",
+      "small": "Piccola",
+      "medium": "Media",
+      "large": "Grande"
+    },
+    "chat": {
+      "extra": "Istruzioni aggiuntive",
+      "extraHint": "Aggiunte a ogni domanda. Le risposte usano comunque solo i tuoi documenti e mantengono le citazioni.",
+      "extraPlaceholder": "es. Risposte brevi e con elenchi puntati."
+    },
+    "shortcuts": {
+      "newChat": "Nuova chat",
+      "focusComposer": "Vai al campo della domanda",
+      "openSettings": "Apri le Impostazioni",
+      "goChat": "Vai a Chat",
+      "goLibrary": "Vai a Libreria",
+      "goConvert": "Vai a Slide → testo"
+    },
+    "startup": {
+      "label": "Avvia all'accesso",
+      "hint": "Apre Ibid quando accedi al computer.",
+      "failed": "Impossibile cambiare l'impostazione di avvio"
     }
   },
   "nav": {
@@ -307,7 +348,10 @@
       "embeddingWhy": "Trasforma ogni frammento e ogni domanda in un vettore. Cambiarlo in seguito richiede una nuova indicizzazione.",
       "rerankingWhy": "Legge insieme la domanda e ogni candidato, poi li riordina. È ciò che mantiene le risposte pertinenti.",
       "downloadFailed": "Impossibile avviare il download del modello {{role}}",
-      "verified": "verificato"
+      "verified": "verificato",
+      "runtimeInstall": "Scarica i modelli",
+      "runtimeDownloading": "Download in corso… {{percent}}%",
+      "runtimeFailed": "Download non riuscito: {{error}}"
     },
     "connection": {
       "title": "Chi scrive le risposte",
@@ -446,7 +490,8 @@
       "offer": "Ottieni domande migliori scritte da un piccolo modello locale (download di 1,1 GB)",
       "downloading": "Download del modello per le domande… {{percent}}%",
       "failed": "Download non riuscito: {{error}}"
-    }
+    },
+    "waitingModel": "In attesa del modello…"
   },
   "documentStatus": {
     "queued": "in coda",
@@ -696,5 +741,18 @@
     "environmentHint": "Hardware rilevato e build in uso.",
     "recentLog": "Log recente",
     "recentLogHint": "Tutto ciò che app, proxy e core hanno registrato. La pagina Log mostra la vista completa."
+  },
+  "localModel": {
+    "name": "Questo computer",
+    "blurb": "Privato: nulla lascia questo computer",
+    "install": "Installa (~1,1 GB)",
+    "downloading": "Download {{percent}}%",
+    "failed": "Download non riuscito: {{error}}"
+  },
+  "slowSpeed": {
+    "text": "Le risposte sono lente su questo computer (~{{speed}} tok/s). Un modello cloud sarebbe più veloce.",
+    "privacy": "Con OpenRouter, i passaggi recuperati vengono inviati al provider.",
+    "openrouter": "Configura OpenRouter",
+    "keep": "Continua a usare questo computer"
   }
 }

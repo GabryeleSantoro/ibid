@@ -24,6 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddSourceDialog } from "@/features/library/add-source-dialog";
 import { ConnectionDialog } from "@/features/settings/connection-dialog";
+import { LocalModelControl } from "@/features/settings/local-model";
 import { bytes } from "@/lib/format";
 import { useJobs } from "@/lib/jobs-context";
 import { api, type HardwareInfo, type InstalledModel, type ModelRole } from "@/lib/ipc";
@@ -33,6 +34,7 @@ import {
   healthQuery,
   keys,
   modelsQuery,
+  runtimeQuery,
   sourcesQuery,
 } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -309,20 +311,51 @@ function ModelRow({
 
 function ModelsStep({ installed }: { installed: InstalledModel[] }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const runtime = useQuery(runtimeQuery);
+  const install = useMutation({
+    mutationFn: api.installRuntime,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.runtime }),
+  });
+  const data = runtime.data;
+  const real = data !== undefined && data.state !== "unavailable";
   return (
     <StepFrame
       title={t("onboarding.models.title")}
       lead={t("onboarding.models.lead")}
     >
       <div className="space-y-2">
-        {CORE_MODELS.map((spec) => (
-          <ModelRow
-            key={spec.role}
-            spec={spec}
-            installed={installed.find((model) => model.role === spec.role && model.active)}
-          />
-        ))}
+        {CORE_MODELS.map((spec) =>
+          real ? (
+            <Row
+              key={spec.role}
+              icon={CpuIcon}
+              tone={data.state === "ready" ? "ok" : undefined}
+              title={spec.name}
+              body={t(spec.whyKey)}
+            />
+          ) : (
+            <ModelRow
+              key={spec.role}
+              spec={spec}
+              installed={installed.find((model) => model.role === spec.role && model.active)}
+            />
+          ),
+        )}
       </div>
+      {data?.state === "downloading" ? (
+        <Progress value={Math.round(data.progress * 100)} />
+      ) : null}
+      {data?.error ? (
+        <p className="text-xs text-status-error">
+          {t("onboarding.models.runtimeFailed", { error: data.error })}
+        </p>
+      ) : null}
+      {data?.state === "missing" ? (
+        <Button size="sm" onClick={() => install.mutate()}>
+          <DownloadIcon /> {t("onboarding.models.runtimeInstall")}
+        </Button>
+      ) : null}
     </StepFrame>
   );
 }
@@ -331,6 +364,7 @@ function ConnectionStep() {
   const { t } = useTranslation();
   const connections = useQuery(connectionsQuery);
   const list = connections.data ?? [];
+  const own = list.filter((connection) => connection.kind !== "local");
 
   return (
     <StepFrame
@@ -347,7 +381,7 @@ function ConnectionStep() {
             tone={connection.active ? "ok" : undefined}
             title={
               <span className="flex items-center gap-2">
-                {connection.name}
+                {connection.kind === "local" ? t("localModel.name") : connection.name}
                 {connection.active ? (
                   <span className="rounded-full bg-primary/12 px-1.5 py-0.5 text-[0.625rem] font-medium text-primary">
                     {t("common.active")}
@@ -356,20 +390,28 @@ function ConnectionStep() {
               </span>
             }
             body={
-              <span className="font-mono text-[0.625rem]">
-                {connection.model_id}
-                {connection.base_url ? ` · ${connection.base_url}` : ""}
-              </span>
+              connection.kind === "local" ? (
+                t("localModel.blurb")
+              ) : (
+                <span className="font-mono text-[0.625rem]">
+                  {connection.model_id}
+                  {connection.base_url ? ` · ${connection.base_url}` : ""}
+                </span>
+              )
             }
             aside={
-              <ConnectionDialog
-                connection={connection}
-                trigger={
-                  <Button variant="ghost" size="sm" className="h-7">
-                    {t("common.edit")}
-                  </Button>
-                }
-              />
+              connection.kind === "local" ? (
+                <LocalModelControl connection={connection} />
+              ) : (
+                <ConnectionDialog
+                  connection={connection}
+                  trigger={
+                    <Button variant="ghost" size="sm" className="h-7">
+                      {t("common.edit")}
+                    </Button>
+                  }
+                />
+              )
             }
           />
         ))}
@@ -377,8 +419,8 @@ function ConnectionStep() {
 
       <ConnectionDialog
         trigger={
-          <Button variant={list.length === 0 ? "default" : "secondary"} size="sm" className="h-7">
-            {list.length === 0 ? t("onboarding.connection.add") : t("onboarding.connection.addAnother")}
+          <Button variant={own.length === 0 ? "default" : "secondary"} size="sm" className="h-7">
+            {own.length === 0 ? t("onboarding.connection.add") : t("onboarding.connection.addAnother")}
           </Button>
         }
       />
@@ -503,15 +545,19 @@ export function OnboardingView() {
       toast.error(t("onboarding.saveFailed"), { description: errorText(error) }),
   });
 
-  const coreReady = CORE_MODELS.every((spec) =>
-    installed.some((model) => model.role === spec.role && model.active),
-  );
+  const runtime = useQuery(runtimeQuery);
+  const coreReady =
+    runtime.data?.state === "ready" ||
+    (runtime.data?.state === "unavailable" &&
+      CORE_MODELS.every((spec) =>
+        installed.some((model) => model.role === spec.role && model.active),
+      ));
 
   const blocked =
     (step === "hardware" && !hardware.data) || (step === "models" && !coreReady);
 
   const optional =
-    (step === "connection" && (connections.data ?? []).length === 0) ||
+    (step === "connection" && !(connections.data ?? []).some((connection) => connection.active)) ||
     (step === "library" && (sources.data ?? []).length === 0);
 
   function next() {

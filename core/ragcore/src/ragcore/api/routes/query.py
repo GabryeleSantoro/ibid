@@ -92,6 +92,17 @@ def project_filters(store, session_id: str, filters: QueryFilters) -> QueryFilte
     return scoped
 
 
+MIN_PIECES_FOR_SPEED = 30
+
+
+def tokens_per_second(pieces: int, first_at: float | None, last_at: float | None) -> float | None:
+    """Pieces per second from the first to the last one; load and prompt time excluded."""
+    if pieces < MIN_PIECES_FOR_SPEED or first_at is None or last_at is None:
+        return None
+    span = last_at - first_at
+    return (pieces - 1) / span if span > 0 else None
+
+
 def route_mode(question: str) -> tuple[str, str]:
     lowered = question.lower()
     hit = next((h for h in GLOBAL_HINTS if h in lowered), None)
@@ -142,11 +153,16 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
 
         connection = store.active_connection()
         stream = answerer.stream(
-            question, chunks, directives, system_prompt=system_prompt_for(payload.lang)
+            question,
+            chunks,
+            directives,
+            system_prompt=system_prompt_for(payload.lang, store.settings.chat_extra_instructions),
         )
 
         answer: list[str] = []
         first_token_at: float | None = None
+        last_piece_at: float | None = None
+        pieces = 0
         try:
             async for piece in stream:
                 if query_id in _cancelled:
@@ -155,6 +171,8 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
                     break
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
+                pieces += 1
+                last_piece_at = time.perf_counter()
                 answer.append(piece)
                 yield frame("token", TokenEvent(text=piece))
         except Exception as exc:  # noqa: BLE001 - reported to the UI as an error frame
@@ -170,6 +188,9 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
             )
             return
         finally:
+            close = getattr(stream, "aclose", None)
+            if close is not None:
+                await close()
             _cancelled.discard(query_id)
 
         text = "".join(answer)
@@ -202,6 +223,11 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
                 latency=latency,
                 connection_id=connection.id if connection else None,
                 remote=bool(connection and connection.is_remote),
+                tokens_per_s=(
+                    tokens_per_second(pieces, first_token_at, last_piece_at)
+                    if connection and connection.kind == "local"
+                    else None
+                ),
             ),
         )
 

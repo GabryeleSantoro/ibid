@@ -52,7 +52,10 @@
     "llm_budget_spent": "{{name}} hat das gesamte Ausgabebudget verbraucht, ohne Text zu schreiben, vermutlich durch Denkaufwand. Max. Ausgabe-Token erhöhen oder entfernen, oder Denkaufwand senken.",
     "llm_stream_cut": "{{name}} hat den Stream nach {{seconds}} s ohne Text beendet, vermutlich noch im Denkmodus, als der Anbieter abbrach. Denkaufwand senken, ein Modell ohne Denkmodus verwenden oder weniger Folien auf einmal konvertieren.",
     "llm_empty_answer": "{{name}} lieferte eine leere Antwort (Abschlussgrund: {{finish}})",
-    "model_role_active": "Zuerst ein anderes Modell für diese Rolle aktivieren"
+    "model_role_active": "Zuerst ein anderes Modell für diese Rolle aktivieren",
+    "local_model_missing": "Das integrierte Modell ist nicht installiert. Installieren Sie es unter Einstellungen → Verbindungen.",
+    "local_model_failed": "Das integrierte Modell konnte nicht gestartet werden: {{reason}}",
+    "local_model_unsupported_for_slides": "Die Foliensatz-Umwandlung benötigt eine Dienstverbindung; das integrierte Modell ist dafür zu klein."
   },
   "settings": {
     "language": {
@@ -84,6 +87,18 @@
       "updates": {
         "label": "Updates",
         "blurb": "Verwendete Version und wie neue ankommen."
+      },
+      "appearance": {
+        "label": "Darstellung",
+        "blurb": "Design und Textgröße."
+      },
+      "chat": {
+        "label": "Chat",
+        "blurb": "Standardeinstellungen dafür, wie Antworten verfasst werden."
+      },
+      "shortcuts": {
+        "label": "Tastenkürzel",
+        "blurb": "Tastenkürzel, die überall in der App funktionieren."
       }
     },
     "saved": "Einstellungen gespeichert",
@@ -153,6 +168,32 @@
       "checking": "Prüfung läuft …",
       "check": "Nach Updates suchen",
       "current": "Aktuelle Version {{version}}"
+    },
+    "appearance": {
+      "theme": "Design",
+      "fontSize": "Textgröße",
+      "fontSizeHint": "Skaliert die gesamte Oberfläche.",
+      "small": "Klein",
+      "medium": "Mittel",
+      "large": "Groß"
+    },
+    "chat": {
+      "extra": "Zusätzliche Anweisungen",
+      "extraHint": "Wird jeder Frage hinzugefügt. Antworten nutzen weiterhin nur deine Dokumente und behalten ihre Zitate.",
+      "extraPlaceholder": "z. B. Kurze Antworten mit Aufzählungspunkten."
+    },
+    "shortcuts": {
+      "newChat": "Neuer Chat",
+      "focusComposer": "Zum Fragefeld springen",
+      "openSettings": "Einstellungen öffnen",
+      "goChat": "Zu Chat",
+      "goLibrary": "Zur Bibliothek",
+      "goConvert": "Zu Folien → Text"
+    },
+    "startup": {
+      "label": "Beim Anmelden starten",
+      "hint": "Öffnet Ibid, wenn du dich am Computer anmeldest.",
+      "failed": "Die Anmeldeeinstellung konnte nicht geändert werden"
     }
   },
   "nav": {
@@ -307,7 +348,10 @@
       "embeddingWhy": "Wandelt jeden Abschnitt und jede Frage in einen Vektor um. Ein späterer Wechsel erfordert eine Neuindizierung.",
       "rerankingWhy": "Liest die Frage und jeden Kandidaten gemeinsam und sortiert neu. Das hält die Antworten beim Thema.",
       "downloadFailed": "Der Download des Modells {{role}} konnte nicht gestartet werden",
-      "verified": "geprüft"
+      "verified": "geprüft",
+      "runtimeInstall": "Modelle herunterladen",
+      "runtimeDownloading": "Wird heruntergeladen… {{percent}}%",
+      "runtimeFailed": "Download fehlgeschlagen: {{error}}"
     },
     "connection": {
       "title": "Wer die Antworten schreibt",
@@ -446,7 +490,8 @@
       "offer": "Bessere Fragen von einem kleinen lokalen Modell erhalten (1,1 GB Download)",
       "downloading": "Fragenmodell wird geladen… {{percent}} %",
       "failed": "Download fehlgeschlagen: {{error}}"
-    }
+    },
+    "waitingModel": "Warte auf das Modell…"
   },
   "documentStatus": {
     "queued": "in Warteschlange",
@@ -696,5 +741,18 @@
     "environmentHint": "Erkannte Hardware und verwendeter Build.",
     "recentLog": "Aktuelles Protokoll",
     "recentLogHint": "Alles, was App, Proxy und Kern protokolliert haben. Die Seite Protokolle zeigt die vollständige Ansicht."
+  },
+  "localModel": {
+    "name": "Dieser Computer",
+    "blurb": "Privat: nichts verlässt diesen Computer",
+    "install": "Installieren (~1,1 GB)",
+    "downloading": "Download {{percent}} %",
+    "failed": "Download fehlgeschlagen: {{error}}"
+  },
+  "slowSpeed": {
+    "text": "Antworten sind auf diesem Computer langsam (~{{speed}} Tok/s). Ein Cloud-Modell wäre schneller.",
+    "privacy": "Mit OpenRouter werden die gefundenen Passagen an den Anbieter gesendet.",
+    "openrouter": "OpenRouter einrichten",
+    "keep": "Auf diesem Computer bleiben"
   }
 }
