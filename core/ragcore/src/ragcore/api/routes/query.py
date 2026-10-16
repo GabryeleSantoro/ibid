@@ -103,6 +103,38 @@ def tokens_per_second(pieces: int, first_at: float | None, last_at: float | None
     return (pieces - 1) / span if span > 0 else None
 
 
+def chat_history(messages: list[ChatMessage], budget_tokens: int) -> list[tuple[str, str]]:
+    """Earlier answered turns as (role, text), oldest first, newest kept within the budget.
+
+    A question with no answer after it (failed or cancelled) is left out: providers
+    reject two user turns in a row, and an empty assistant turn.
+    """
+    pairs = [
+        (asked.text, answered.text)
+        for asked, answered in zip(messages, messages[1:], strict=False)
+        if asked.role == "user" and answered.role == "assistant" and answered.text.strip()
+    ]
+    kept: list[tuple[str, str]] = []
+    spent = 0
+    for question, answer in reversed(pairs):
+        # ponytail: ~4 chars per token; count with the model's tokenizer if budgets run tight.
+        spent += (len(question) + len(answer)) // 4
+        if spent > budget_tokens:
+            break
+        kept.append((question, answer))
+    return [turn for q, a in reversed(kept) for turn in (("user", q), ("assistant", a))]
+
+
+def retrieval_query(question: str, history: list[tuple[str, str]]) -> str:
+    """A follow-up ("and on a laptop?") searched alone finds nothing; prefix the last question.
+
+    ponytail: concatenation, not an LLM rewrite. A follow-up that changes topic drags the
+    previous question into the search; add a condenser call if eval shows it hurts.
+    """
+    previous = next((text for role, text in reversed(history) if role == "user"), None)
+    return f"{previous}\n{question}" if previous else question
+
+
 def route_mode(question: str) -> tuple[str, str]:
     lowered = question.lower()
     hit = next((h for h in GLOBAL_HINTS if h in lowered), None)
@@ -130,8 +162,11 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
         yield frame("mode", ModeEvent(mode=mode, reason=reason))
 
         filters = project_filters(store, session_id, payload.filters)
+        history = chat_history(
+            store.messages.get(session_id, []), store.settings.retrieval.history_token_budget
+        )
         chunks, latency, candidates = await store.retriever.asearch(
-            question,
+            retrieval_query(question, history),
             settings=store.settings.retrieval,
             filters=filters,
             doc_meta=store.doc_meta(),
@@ -157,6 +192,7 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
             chunks,
             directives,
             system_prompt=system_prompt_for(payload.lang, store.settings.chat_extra_instructions),
+            history=history,
         )
 
         answer: list[str] = []

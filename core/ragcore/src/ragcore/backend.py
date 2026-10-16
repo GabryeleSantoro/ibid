@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 
 from ragcore.api.schemas import RetrievedChunk
@@ -36,6 +36,7 @@ class ConnectionAnswerEngine:
         *,
         system_prompt: str | None = None,
         max_tokens: int | None = None,
+        history: Sequence[tuple[str, str]] = (),
     ) -> AsyncIterator[str]:
         from ragcore.llm import llm_stream
         from ragcore.stub.answers import scripted_stream
@@ -51,6 +52,7 @@ class ConnectionAnswerEngine:
             system_prompt=system_prompt,
             max_tokens=max_tokens,
             local=self.local_llm,
+            history=history,
         )
 
 

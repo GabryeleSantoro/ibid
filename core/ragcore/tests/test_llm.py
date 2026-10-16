@@ -479,3 +479,31 @@ def test_blank_extra_instructions_change_nothing() -> None:
 
     assert system_prompt_for(None, "   \n") == SYSTEM_PROMPT
     assert system_prompt_for("fr", "") == system_prompt_for("fr")
+
+
+def test_earlier_turns_go_between_the_system_prompt_and_the_question() -> None:
+    history = [("user", "What is RRF?"), ("assistant", "A fusion method.")]
+
+    _, captured = run(connection(), history=history)
+
+    messages = captured["payload"]["messages"]
+    assert [m["role"] for m in messages] == ["system", "user", "assistant", "user"]
+    assert messages[1]["content"] == "What is RRF?"
+    assert messages[2]["content"] == "A fusion method."
+    assert "What is reranking?" in messages[3]["content"]
+
+
+def test_anthropic_gets_the_history_as_alternating_messages() -> None:
+    _, captured = run(
+        connection(kind="anthropic"),
+        lines=ANTHROPIC_LINES,
+        history=[("user", "q"), ("assistant", "a")],
+    )
+
+    assert [m["role"] for m in captured["payload"]["messages"]] == ["user", "assistant", "user"]
+
+
+def test_no_history_sends_only_the_question() -> None:
+    _, captured = run(connection())
+
+    assert [m["role"] for m in captured["payload"]["messages"]] == ["system", "user"]

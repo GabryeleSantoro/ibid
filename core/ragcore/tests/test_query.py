@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from ragcore.api.routes.query import project_filters, route_mode, tokens_per_second
-from ragcore.api.schemas import QueryFilters
+from ragcore.api.routes.query import (
+    chat_history,
+    project_filters,
+    retrieval_query,
+    route_mode,
+    tokens_per_second,
+)
+from ragcore.api.schemas import ChatMessage, QueryFilters
 
 # ----------------------------------------------------------------- mode router
 
@@ -299,7 +306,7 @@ def test_the_query_language_reaches_the_answer_engine(client: TestClient, read_e
 
     class Recorder:
         async def stream(
-            self, question, chunks, directives, *, system_prompt=None, max_tokens=None
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
         ):
             captured["system_prompt"] = system_prompt
             yield "ok"
@@ -326,7 +333,7 @@ def test_a_query_without_a_language_keeps_the_default_prompt(
 
     class Recorder:
         async def stream(
-            self, question, chunks, directives, *, system_prompt=None, max_tokens=None
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
         ):
             captured["system_prompt"] = system_prompt
             yield "ok"
@@ -368,7 +375,7 @@ def test_extra_instructions_reach_the_answer_engine(client: TestClient, read_eve
 
     class Recorder:
         async def stream(
-            self, question, chunks, directives, *, system_prompt=None, max_tokens=None
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
         ):
             captured["system_prompt"] = system_prompt
             yield "ok"
@@ -382,3 +389,92 @@ def test_extra_instructions_reach_the_answer_engine(client: TestClient, read_eve
         client.app.dependency_overrides.pop(deps.get_answerer, None)
 
     assert captured["system_prompt"].endswith("Answer in bullets")
+
+
+# -------------------------------------------------------------------- history
+
+
+def _msg(role: str, text: str) -> ChatMessage:
+    return ChatMessage(
+        id=f"m_{role}_{text[:8]}", session_id="s", role=role, text=text,
+        created_at=datetime.now(tz=UTC),
+    )
+
+
+def test_history_pairs_each_question_with_its_answer() -> None:
+    messages = [_msg("user", "first"), _msg("assistant", "one")]
+
+    assert chat_history(messages, 2048) == [("user", "first"), ("assistant", "one")]
+
+
+def test_an_unanswered_question_is_left_out_of_the_history() -> None:
+    messages = [
+        _msg("user", "first"), _msg("assistant", "one"),
+        _msg("user", "failed"),
+        _msg("user", "third"), _msg("assistant", ""),
+        _msg("user", "fourth"), _msg("assistant", "four"),
+    ]
+
+    assert chat_history(messages, 2048) == [
+        ("user", "first"), ("assistant", "one"), ("user", "fourth"), ("assistant", "four"),
+    ]
+
+
+def test_the_oldest_turns_go_first_when_the_budget_is_spent() -> None:
+    messages = [
+        _msg("user", "a" * 400), _msg("assistant", "b" * 400),
+        _msg("user", "new"), _msg("assistant", "reply"),
+    ]
+
+    assert chat_history(messages, 100) == [("user", "new"), ("assistant", "reply")]
+
+
+def test_a_follow_up_is_searched_with_the_previous_question() -> None:
+    history = [("user", "How does reranking work?"), ("assistant", "It rescores.")]
+
+    assert retrieval_query("And on a laptop?", history) == (
+        "How does reranking work?\nAnd on a laptop?"
+    )
+    assert retrieval_query("Fresh question", []) == "Fresh question"
+
+
+class _HistorySpy:
+    """Answers with a fixed sentence and records the history it was handed."""
+
+    def __init__(self) -> None:
+        self.histories: list[list[tuple[str, str]]] = []
+
+    async def stream(
+        self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
+    ):
+        self.histories.append(list(history))
+        yield "Answer."
+
+
+def test_a_follow_up_in_the_same_chat_carries_the_earlier_turn(
+    client: TestClient, read_events, monkeypatch
+) -> None:
+    spy = _HistorySpy()
+    client.app.state.answerer = spy
+    store = client.app.state.store
+    searched: list[str] = []
+    original = store.retriever.asearch
+
+    async def recording_search(query, **kwargs):
+        searched.append(query)
+        return await original(query, **kwargs)
+
+    monkeypatch.setattr(store.retriever, "asearch", recording_search)
+
+    with client.stream("POST", "/query", json={"q": "How does reranking work?"}) as response:
+        session_id = dict(read_events(response))["start"]["session_id"]
+    with client.stream(
+        "POST", "/query", json={"q": "And on a laptop?", "session_id": session_id}
+    ) as response:
+        read_events(response)
+
+    assert spy.histories == [
+        [],
+        [("user", "How does reranking work?"), ("assistant", "Answer.")],
+    ]
+    assert searched == ["How does reranking work?", "How does reranking work?\nAnd on a laptop?"]

@@ -12,7 +12,7 @@ import contextlib
 import json
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 
 import httpx
 
@@ -22,6 +22,17 @@ SYSTEM_PROMPT = """You answer questions using only the passages provided.
 Cite every claim with a marker of the form [document_id:page] taken from the
 passage headers. If the passages do not contain the answer, say so plainly and
 cite nothing. Do not invent document ids."""
+
+# Earlier turns of the chat as (role, text), oldest first; role is "user" or "assistant".
+History = Sequence[tuple[str, str]]
+
+
+def _messages(history: History, user: str) -> list[dict]:
+    return [
+        *({"role": role, "content": text} for role, text in history),
+        {"role": "user", "content": user},
+    ]
+
 
 LANGUAGE_NAMES = {"it": "Italian", "fr": "French", "de": "German", "es": "Spanish"}
 
@@ -77,6 +88,8 @@ def _request(
     chunks: list[RetrievedChunk],
     system_prompt: str,
     max_tokens: int | None,
+    *,
+    history: History = (),
 ) -> tuple[str, dict, dict]:
     """The URL, JSON body and headers for one connection's streaming call."""
     user = _user_prompt(question, chunks)
@@ -90,7 +103,7 @@ def _request(
             "stream": True,
             "max_tokens": max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS,
             "system": system_prompt,
-            "messages": [{"role": "user", "content": user}],
+            "messages": _messages(history, user),
         }
         return f"{base}/messages", body, headers
 
@@ -101,10 +114,7 @@ def _request(
     body = {
         "model": connection.model_id,
         "stream": True,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user},
-        ],
+        "messages": [{"role": "system", "content": system_prompt}, *_messages(history, user)],
     }
     if max_tokens:
         body["max_tokens"] = max_tokens
@@ -192,6 +202,7 @@ async def _stream(
     system_prompt: str | None = None,
     max_tokens: int | None = None,
     extra_body: dict | None = None,
+    history: History = (),
 ) -> AsyncIterator[str]:
     if connection.kind != "anthropic" and not connection.base_url:
         raise LlmError(
@@ -207,6 +218,7 @@ async def _stream(
         chunks,
         system_prompt or SYSTEM_PROMPT,
         max_tokens or connection.max_output_tokens,
+        history=history,
     )
     body.update(extra_body or {})
     cap = max_tokens or connection.max_output_tokens
@@ -318,6 +330,7 @@ async def llm_stream(
     system_prompt: str | None = None,
     max_tokens: int | None = None,
     local=None,
+    history: History = (),
 ) -> AsyncIterator[str]:
     """Stream from the connection the user activated, and from nothing else."""
     if connection.kind != "local":
@@ -328,6 +341,7 @@ async def llm_stream(
             chunks,
             system_prompt=system_prompt,
             max_tokens=max_tokens,
+            history=history,
         ):
             yield piece
         return
@@ -353,5 +367,6 @@ async def llm_stream(
             system_prompt=system_prompt,
             max_tokens=max_tokens or connection.max_output_tokens or LOCAL_MAX_TOKENS,
             extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            history=history,
         ):
             yield piece

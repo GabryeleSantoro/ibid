@@ -7,7 +7,7 @@ routes; the routes are contract and do not bend.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Protocol, runtime_checkable
 
 from ragcore.api.schemas import (
@@ -98,6 +98,8 @@ class AnswerEngine(Protocol):
         *,
         system_prompt: str | None = None,
         max_tokens: int | None = None,
+        history: Sequence[tuple[str, str]] = (),
     ) -> AsyncIterator[str]:
-        """Yields answer text pieces. Directives are stub-only and ignored by real engines."""
+        """Yields answer text pieces. Directives are stub-only and ignored by real engines;
+        history is earlier (role, text) turns, oldest first."""
         ...
