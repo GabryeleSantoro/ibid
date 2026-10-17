@@ -1,0 +1,191 @@
+{
+  "metrics": {
+    "set_name": "base",
+    "n_questions": 20,
+    "recall_at_1": 0.85,
+    "recall_at_6": 1.0,
+    "mrr": 0.9083,
+    "ndcg_at_6": 0.9315,
+    "latency_p50": {
+      "embed_ms": 0.0,
+      "dense_ms": 0.0,
+      "bm25_ms": 0.0,
+      "rerank_ms": 0.0,
+      "pack_ms": 0.0,
+      "llm_first_token_ms": 0.0,
+      "total_ms": 14.44
+    },
+    "latency_p95": {
+      "embed_ms": 0.0,
+      "dense_ms": 0.0,
+      "bm25_ms": 0.0,
+      "rerank_ms": 0.0,
+      "pack_ms": 0.0,
+      "llm_first_token_ms": 0.0,
+      "total_ms": 31.61
+    },
+    "baseline_recall_at_6": null
+  },
+  "questions": [
+    {
+      "q": "why can't I just change the embedding model in an app update",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 23.85
+    },
+    {
+      "q": "how much storage does a million 1024-dimension vectors take",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 31.61
+    },
+    {
+      "q": "what does the k constant do in reciprocal rank fusion",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 21.76
+    },
+    {
+      "q": "why keyword search alone misses paraphrased questions",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.59
+    },
+    {
+      "q": "make the system say it found nothing instead of returning irrelevant passages",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 15.03
+    },
+    {
+      "q": "can I replace the reranker without rebuilding the index",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.53
+    },
+    {
+      "q": "how many candidates to send to the cross-encoder on a laptop without a GPU",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 17.4
+    },
+    {
+      "q": "problem with cutting documents every N tokens",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 13.58
+    },
+    {
+      "q": "send the bigger surrounding passage to the LLM but search on small ones",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 15.15
+    },
+    {
+      "q": "how many golden questions do I need to start evaluating",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 13.72
+    },
+    {
+      "q": "stop retrieval quality silently regressing in CI",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 13.22
+    },
+    {
+      "q": "what to do with citations that don't match retrieved passages",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.2
+    },
+    {
+      "q": "questions about the main themes across all reports",
+      "type": "global",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 13.0
+    },
+    {
+      "q": "should language filters run before or after retrieval",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 17.44
+    },
+    {
+      "q": "perché non posso cambiare il modello di embedding senza reindicizzare",
+      "type": "local",
+      "hit": true,
+      "rank": 3,
+      "ndcg": 0.5,
+      "latency_ms": 14.08
+    },
+    {
+      "q": "quanti candidati passare al reranker su un computer senza GPU",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.37
+    },
+    {
+      "q": "cosa succede quando nessun passaggio è abbastanza rilevante",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 12.55
+    },
+    {
+      "q": "dividere i documenti seguendo titoli e struttura invece di token fissi",
+      "type": "local",
+      "hit": true,
+      "rank": 3,
+      "ndcg": 0.5,
+      "latency_ms": 14.38
+    },
+    {
+      "q": "quali metriche usare per valutare il recupero dei passaggi",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.18
+    },
+    {
+      "q": "come si scartano le citazioni non valide nelle risposte",
+      "type": "local",
+      "hit": true,
+      "rank": 2,
+      "ndcg": 0.6309297535714575,
+      "latency_ms": 14.44
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+name: eval
+
+# Retrieval quality gate: recall@6 on eval/golden/base.jsonl may not drop more than one
+# question below the committed baseline. Runs only when retrieval-relevant code changes.
+on:
+  pull_request:
+    paths:
+      - core/ragcore/src/ragcore/ingest/**
+      - core/ragcore/src/ragcore/retrieve/**
+      - core/ragcore/src/ragcore/models/**
+      - core/ragcore/src/ragcore/store/**
+      - core/ragcore/src/ragcore/eval.py
+      - eval/**
+      - fixtures/docs/**
+  push:
+    branches: [master]
+    paths:
+      - core/ragcore/src/ragcore/ingest/**
+      - core/ragcore/src/ragcore/retrieve/**
+      - core/ragcore/src/ragcore/models/**
+      - core/ragcore/src/ragcore/store/**
+      - core/ragcore/src/ragcore/eval.py
+      - eval/**
+      - fixtures/docs/**
+
+jobs:
+  recall:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/cache@v4
+        with:
+          path: ~/.ibid/models
+          key: embedder-embeddinggemma-300M-qat-Q4_0
+      - name: Fetch the embedder
+        run: |
+          mkdir -p ~/.ibid/models
+          f=~/.ibid/models/embeddinggemma-300M-qat-Q4_0.gguf
+          [ -f "$f" ] || curl -fL -o "$f" \
+            https://huggingface.co/ggml-org/embeddinggemma-300M-qat-q4_0-GGUF/resolve/main/embeddinggemma-300M-qat-Q4_0.gguf
+      - run: brew install llama.cpp
+      - name: Start the embedder (CPU, like the baseline)
+        run: |
+          llama-server -m ~/.ibid/models/embeddinggemma-300M-qat-Q4_0.gguf \
+            --embedding -c 2048 -b 2048 -ub 2048 -ngl 0 --port 8770 --host 127.0.0.1 \
+            > "$RUNNER_TEMP/embed.log" 2>&1 &
+          for _ in $(seq 60); do curl -sf http://127.0.0.1:8770/health && exit 0; sleep 2; done
+          cat "$RUNNER_TEMP/embed.log"
+          exit 1
+      - run: uv sync
+      - run: >-
+          uv run ragcore eval eval/golden/base.jsonl --corpus fixtures/docs
+          --rerank-url http://127.0.0.1:1 --gate
