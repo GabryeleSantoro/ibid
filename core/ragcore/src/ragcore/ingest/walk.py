@@ -95,7 +95,7 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _is_hidden(relative: Path) -> bool:
+def is_hidden(relative: Path) -> bool:
     """True if any path segment starts with a dot, or is an Office lock file (``~$name``)."""
     return any(part.startswith((".", "~$")) for part in relative.parts)
 
@@ -145,7 +145,7 @@ def walk_source(
     out: list[FoundFile] = []
     for path in sorted(included):
         ext = path.suffix.lower()
-        if _is_hidden(path.relative_to(root)) or (suffixes is not None and ext not in suffixes):
+        if is_hidden(path.relative_to(root)) or (suffixes is not None and ext not in suffixes):
             continue
         try:
             stat = path.stat()

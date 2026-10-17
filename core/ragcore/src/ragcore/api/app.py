@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import secrets
 import time
 from collections.abc import AsyncIterator
@@ -52,9 +54,14 @@ def create_app(config: Config) -> FastAPI:
         app.state.servers = backend.servers
         if backend.servers:
             await backend.servers.start()
+        watch_task = asyncio.create_task(backend.watcher.run()) if backend.watcher else None
         try:
             yield
         finally:
+            if watch_task is not None:
+                watch_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await watch_task
             if backend.servers:
                 backend.servers.stop()
             app.state.local_llm.stop()

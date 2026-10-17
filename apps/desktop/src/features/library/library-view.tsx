@@ -60,6 +60,7 @@ export function LibraryView() {
   const documents = useQuery({
     queryKey: keys.documents(params),
     queryFn: () => api.listDocuments(params),
+    refetchInterval: 5000,
   });
 
   const invalidate = () => {
