@@ -27,6 +27,7 @@ uv run ruff check .
 uv run --directory core/ragcore ragcore serve --port 8765      # API only; docs at /docs
 uv run ragcore index ./fixtures/docs --data-dir /tmp/rc        # real backend, headless; needs serve-models.sh
 uv run ragcore ask "what does reranking do" --data-dir /tmp/rc # prints answer + validated [doc_id:page] citations
+uv run ragcore eval eval/golden/base.jsonl --corpus fixtures/docs   # recall@k/MRR/nDCG in a scratch index; --gate fails below eval/golden/base.baseline.json
 ```
 
 Bare `serve` defaults to `--backend stub` (dev runs only). The shell passes `--backend real`, and ragcore starts/restarts the embedder and reranker llama-servers itself, so the shell supervises only ragcore. `index`/`ask` always use the real backend.
@@ -45,6 +46,8 @@ cd src-tauri && cargo test --lib
 
 Other scripts: `scripts/fetch-models.sh` + `scripts/dev/serve-models.sh` (EmbeddingGemma embedder + Qwen3 reranker via llama-server), `scripts/build-sidecar.sh` (PyInstaller → `src-tauri/binaries/ragcore`), `scripts/install-local.sh`.
 
+`scripts/check-licenses.py` + `apps/desktop/src-tauri/deny.toml` are the license guard (CI fails on GPL/AGPL/SSPL).
+
 **After every change, run `scripts/install-local.sh`** (builds the app and swaps it into /Applications; data in `~/.ibid` and keychain are untouched). Do not cut a release unless asked.
 
 Releases: pushing a `v*` tag triggers `.github/workflows/release.yml`; the version comes from the tag and is stamped into `src-tauri/Cargo.toml` (the single version source; `tauri.conf.json` inherits it). `scripts/next-version.sh` computes the next patch.
@@ -53,7 +56,8 @@ Releases: pushing a `v*` tag triggers `.github/workflows/release.yml`; the versi
 
 - `backend.py` composes a `Backend` from ports (`ports.py`: store, answer engine, jobs, model hub) for the process lifetime. `config.backend` is `"stub"` (default: in-memory fixture corpus, keyword retrieval, scripted answers in `stub/`) or `"real"` (`store/lance.py` + `store/meta.py`: LanceDB vectors + SQLite metadata, embeddings via `models/embed.py`). API routes (`api/routes/`) depend only on the ports, so adapters swap without route changes.
 - `model_servers.py`: owns the embedder/reranker llama-servers (install on user request, watchdog restart every 5 s). `local_llm.py`: built-in Qwen3-1.7B answer model, started on first use, stopped after 60 s idle.
-- Ingestion: `ingest/walk.py` (scan/filter) → `parse.py` (Markdown, TXT, PDF, PPTX) → `chunk.py` (page-safe overlapping windows with section context). Page numbers and chunk offsets exist to support citation validation.
+- `watch.py`: watchdog observer; rescans a watched source 2 s after its files settle (real backend only).
+- Ingestion: `ingest/walk.py` (scan/filter) → `parse.py` (Markdown, TXT, PDF with RapidOCR for pages without a text layer, PPTX, DOCX, HTML, CSV; sets `lang` via py3langid) → `chunk.py` (page-safe overlapping windows with section context). Page numbers and chunk offsets exist to support citation validation.
 - `citations.py`: a citation not pointing at a retrieved passage is discarded — preserve this invariant when touching answer streaming.
 - Generative model is never configured by env vars: the user creates/activates a Connection (OpenRouter/OpenAI/Anthropic/OpenAI-compatible) in Settings. OpenAI-compatible uses `/chat/completions` streaming; Anthropic uses native `/v1/messages`. No active connection → `/query` uses the scripted stub and slide conversion returns 409. API keys live in the keychain (Rust) and only in memory in ragcore.
 - `tests/conftest.py` and `models/fakes.py` provide fakes so tests don't need live models.
