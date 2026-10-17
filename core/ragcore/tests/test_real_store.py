@@ -346,3 +346,37 @@ async def test_pdf_citations_keep_their_page_past_a_blank_one(tmp_path: Path, te
     assert content is not None
     assert content.n_pages == 3
     assert [c.page for c in content.chunks if "Hybrid" in c.text] == [3]
+
+
+async def test_a_scan_ocr_reads_is_indexed(tmp_path: Path, text_pdf, monkeypatch) -> None:
+    from ragcore.ingest import ocr
+
+    monkeypatch.setattr(ocr, "read_page", lambda page: "Rerankers rescore the fused candidates.")
+    docs = tmp_path / "scans"
+    docs.mkdir()
+    (docs / "scan.pdf").write_bytes(text_pdf(""))
+    store = build(tmp_path)
+    source = add(store, docs)
+
+    [document] = await store.ingest_source_async(source.id)
+
+    assert document.status == "indexed"
+    assert document.n_chunks >= 1
+
+
+async def test_a_scan_ocr_cannot_read_is_skipped_with_a_reason(
+    tmp_path: Path, text_pdf, monkeypatch
+) -> None:
+    from ragcore.ingest import ocr
+
+    monkeypatch.setattr(ocr, "read_page", lambda page: "")
+    docs = tmp_path / "scans"
+    docs.mkdir()
+    (docs / "blank.pdf").write_bytes(text_pdf(""))
+    store = build(tmp_path)
+    source = add(store, docs)
+
+    [document] = await store.ingest_source_async(source.id)
+
+    assert document.status == "skipped"
+    assert document.error == "no text found, not even by OCR"

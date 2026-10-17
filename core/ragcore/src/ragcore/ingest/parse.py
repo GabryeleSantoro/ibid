@@ -8,9 +8,9 @@ closest honest analogue and is what the reader view highlights against. Task
 ``parse()`` dispatches on suffix through the ``_PARSERS`` table below. PDFs
 are opened with ``pypdfium2`` rather than being decoded as UTF-8: a PDF is a
 binary container, and reading it as text returns font tables and drawing
-operators instead of the words visible on the slide. ``ParsedDoc.needs_ocr``
-is set when a PDF page has no extractable text layer (for example, a slide
-exported as an image).
+operators instead of the words visible on the slide. A PDF page with no
+extractable text layer (for example, a slide exported as an image) is run
+through OCR; ``ParsedDoc.needs_ocr`` is set when even OCR finds too little.
 
 Semantics decided here, that Task 8/9 depend on:
 
@@ -56,6 +56,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from zipfile import ZipFile
+
+from ragcore.ingest import ocr
 
 _HEADING = re.compile(r"^(#{1,3})\s+(.*)$", re.MULTILINE)
 _NOTES_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"
@@ -132,9 +134,9 @@ def _clean_pdf_text(text: str) -> str:
 def _pdf(path: Path) -> ParsedDoc:
     """Extract one page per PDF page using PDFium's text layer.
 
-    OCR is intentionally not run here. A page whose text layer is under
-    ``OCR_THRESHOLD`` characters (blank, or a scan with a stray page number) is
-    kept, so later page numbers stay true, and flags the document for OCR.
+    A page whose text layer is under OCR_THRESHOLD characters is run through OCR;
+    if that still finds too little, the page is kept (later page numbers stay
+    true) and the document is flagged.
     """
     try:
         import pypdfium2 as pdfium
@@ -153,6 +155,9 @@ def _pdf(path: Path) -> ParsedDoc:
             try:
                 text_page = page.get_textpage()
                 text = _clean_pdf_text(text_page.get_text_range())
+                if len(text) < OCR_THRESHOLD:
+                    # ponytail: serial, ~0.5-1 s per scanned page; a 300-page scan takes minutes.
+                    text = _clean_pdf_text(ocr.read_page(page)) or text
             finally:
                 if text_page is not None:
                     text_page.close()

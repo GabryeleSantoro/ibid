@@ -16,6 +16,8 @@ uv run --group build pyinstaller \
   --collect-all lancedb \
   --collect-all pyarrow \
   --collect-all pypdfium2 \
+  --collect-all rapidocr \
+  --collect-all onnxruntime \
   --collect-all uvicorn \
   --add-data "$root/fixtures/docs:fixtures/docs" \
   core/ragcore/src/ragcore/__main__.py

@@ -65,7 +65,7 @@ def doc_id_for(path: str) -> str:
 
 # Statuses whose sha is trusted on rescan: an unchanged file is not read again.
 _SETTLED = frozenset({"indexed", "skipped"})
-NO_TEXT_LAYER = "no text layer; OCR not available in this build"
+NO_TEXT_LAYER = "no text found, not even by OCR"
 
 
 @dataclass(slots=True)

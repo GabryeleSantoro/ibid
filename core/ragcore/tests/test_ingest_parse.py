@@ -56,6 +56,10 @@ def test_unknown_extension_raises(tmp_path: Path) -> None:
 
 
 def test_pdf_extracts_slide_text_page_by_page(tmp_path: Path, monkeypatch) -> None:
+    from ragcore.ingest import ocr
+
+    monkeypatch.setattr(ocr, "read_page", lambda page: "")  # the fake page cannot render
+
     class FakeTextPage:
         def __init__(self, text: str) -> None:
             self.text = text
@@ -235,3 +239,46 @@ def test_pptx_slide_without_rels_file_is_unaffected(tmp_path: Path) -> None:
     parsed = parse(source)
 
     assert parsed.pages[0].text == "Plain slide"
+
+
+def test_a_page_without_a_text_layer_gets_its_text_from_ocr(
+    tmp_path: Path, text_pdf, monkeypatch
+) -> None:
+    from ragcore.ingest import ocr
+
+    monkeypatch.setattr(ocr, "read_page", lambda page: "Words recovered from the scanned image")
+    source = tmp_path / "scan.pdf"
+    source.write_bytes(text_pdf("Cross encoders score pairs.", ""))
+
+    parsed = parse(source)
+
+    assert parsed.pages[1].text == "Words recovered from the scanned image"
+    assert parsed.needs_ocr is False
+
+
+def test_a_page_ocr_cannot_read_stays_flagged(tmp_path: Path, text_pdf, monkeypatch) -> None:
+    from ragcore.ingest import ocr
+
+    monkeypatch.setattr(ocr, "read_page", lambda page: "")
+    source = tmp_path / "blank.pdf"
+    source.write_bytes(text_pdf(""))
+
+    parsed = parse(source)
+
+    assert parsed.pages[0].text == ""
+    assert parsed.needs_ocr is True
+
+
+def test_the_real_ocr_engine_reads_rendered_text(tmp_path: Path, text_pdf) -> None:
+    import pypdfium2 as pdfium
+    from ragcore.ingest import ocr
+
+    source = tmp_path / "printed.pdf"
+    source.write_bytes(text_pdf("Hello OCR world"))
+    document = pdfium.PdfDocument(str(source))
+    try:
+        text = ocr.read_page(document[0])
+    finally:
+        document.close()
+
+    assert "hello" in text.lower()
