@@ -4,6 +4,7 @@ version = "0.0.6"
 description = "Local-first RAG desktop app"
 authors = ["GabryeleSantoro"]
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -19,6 +19,7 @@ jobs:
           enable-cache: true
       - run: uv sync
       - run: uv run ruff check .
+      - run: uv run python scripts/check-licenses.py
       - run: uv run pytest -v  # requires_models excluded by default
 
   frontend:
@@ -32,6 +33,15 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run test
+
+  licenses-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: apps/desktop/src-tauri/Cargo.toml
+          command: check licenses
 
   rust:
     runs-on: macos-latest
