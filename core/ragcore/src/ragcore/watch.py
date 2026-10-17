@@ -121,7 +121,12 @@ class SourceWatcher:
         self.start()
         try:
             while True:
-                await self.tick()
+                # A sync route (DELETE /sources) can change store.sources mid-iteration
+                # from a worker thread; one bad tick must not end watching for the session.
+                try:
+                    await self.tick()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("watch tick failed, retrying: %s", exc)
                 await asyncio.sleep(TICK_S)
         finally:
             self.stop()

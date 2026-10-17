@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import shutil
 import time
 from pathlib import Path
@@ -130,3 +131,43 @@ async def test_a_failed_scan_is_logged_not_raised(tmp_path, watching, caplog) ->
 
     assert store.ingested == ["src_1"]
     assert "embedder down" in caplog.text
+
+
+class _Flaky(dict):
+    """A sources mapping another thread mutates mid-iteration, once."""
+
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.failures = 1
+
+    def values(self):
+        if self.failures:
+            self.failures -= 1
+            raise RuntimeError("dictionary changed size during iteration")
+        return super().values()
+
+
+async def test_a_failing_tick_does_not_stop_the_watcher(tmp_path, monkeypatch, caplog) -> None:
+    import asyncio
+
+    from ragcore import watch
+
+    monkeypatch.setattr(watch, "TICK_S", 0.01)
+    store = FakeStore(source(tmp_path))
+    store.sources = _Flaky(store.sources)
+    watcher = SourceWatcher(store)
+    watcher.touch("src_1")
+    watcher.pending["src_1"] -= DEBOUNCE_S  # already due
+    task = asyncio.create_task(watcher.run())
+    try:
+        for _ in range(200):
+            if store.ingested:
+                break
+            await asyncio.sleep(0.01)
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+    assert store.ingested == ["src_1"]
+    assert "dictionary changed size" in caplog.text
