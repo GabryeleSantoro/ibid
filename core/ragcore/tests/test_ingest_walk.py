@@ -150,3 +150,12 @@ def test_a_file_whose_mtime_moved_is_hashed_again(tmp_path: Path) -> None:
     )
 
     assert again.sha256 == sha256_of(path)
+
+
+def test_office_lock_files_are_skipped(tmp_path: Path) -> None:
+    (tmp_path / "report.docx").write_bytes(b"x")
+    (tmp_path / "~$report.docx").write_bytes(b"x")
+
+    found = walk_source(tmp_path, include_globs=["**/*"], exclude_globs=[], max_file_mb=100)
+
+    assert [f.path.name for f in found] == ["report.docx"]

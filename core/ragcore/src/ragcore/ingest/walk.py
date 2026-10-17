@@ -24,6 +24,8 @@ Semantics later tasks (8, 9, 14) rely on, decided here deliberately:
   ``.git``, ``.obsidian`` or ``.venv``. Any path whose name, or an ancestor
   directory's name (relative to ``root``), starts with ``"."`` is excluded
   unconditionally — a caller cannot opt back in via ``include_globs``.
+  Office lock files (``~$report.docx``, written while a document is open) are
+  skipped the same way.
 - **Symlinked files are indexed like any other file; symlinked directories are
   never traversed.** On Python >=3.13 (this repo's floor), ``Path.glob``'s
   recursive ``**`` defaults to ``recurse_symlinks=False``, so a symlink cycle
@@ -61,6 +63,7 @@ MIME_BY_EXT = {
     ".txt": "text/plain",
     ".pdf": "application/pdf",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
 READ_CHUNK = 1024 * 1024  # stream digests in 1 MiB blocks; never read a whole file into memory
@@ -90,8 +93,8 @@ def sha256_of(path: Path) -> str:
 
 
 def _is_hidden(relative: Path) -> bool:
-    """True if any path segment (relative to the walk root) starts with a dot."""
-    return any(part.startswith(".") for part in relative.parts)
+    """True if any path segment starts with a dot, or is an Office lock file (``~$name``)."""
+    return any(part.startswith((".", "~$")) for part in relative.parts)
 
 
 def _glob_recursive(root: Path, pattern: str) -> set[Path]:

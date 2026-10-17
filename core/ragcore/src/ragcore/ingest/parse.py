@@ -242,11 +242,61 @@ def _pptx(path: Path) -> ParsedDoc:
     return ParsedDoc(title=path.stem, pages=_paginate(sections, keep_empty=True))
 
 
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_DOCX_HEADINGS = frozenset({"heading 1", "heading 2"})
+
+
+def _docx_style_names(archive: ZipFile) -> dict[str, str]:
+    """styleId -> lowercased style name. Localized Word translates ids, not names."""
+    if "word/styles.xml" not in archive.namelist():
+        return {}
+    root = ET.fromstring(archive.read("word/styles.xml"))
+    return {
+        style.get(f"{_W}styleId", ""): name.get(f"{_W}val", "").lower()
+        for style in root.iter(f"{_W}style")
+        if (name := style.find(f"{_W}name")) is not None
+    }
+
+
+def _docx(path: Path) -> ParsedDoc:
+    """Paragraph text (table cells included), one page per Heading 1/2 section."""
+    with ZipFile(path) as archive:
+        styles = _docx_style_names(archive)
+        body = ET.fromstring(archive.read("word/document.xml"))
+
+    title: str | None = None
+    sections: list[tuple[str | None, list[str]]] = [(None, [])]
+    for paragraph in body.iter(f"{_W}p"):
+        text = "".join(node.text or "" for node in paragraph.iter(f"{_W}t")).strip()
+        if not text:
+            continue
+        style_ref = paragraph.find(f"{_W}pPr/{_W}pStyle")
+        style = styles.get(style_ref.get(f"{_W}val", "")) if style_ref is not None else None
+        if style == "title" and title is None:
+            title = text
+        elif style in _DOCX_HEADINGS:
+            sections.append((text, []))
+        else:
+            sections[-1][1].append(text)
+
+    title = title or path.stem
+    return ParsedDoc(
+        title=title,
+        pages=_paginate(
+            [
+                (title if heading is None else f"{title} > {heading}", "\n".join(lines))
+                for heading, lines in sections
+            ]
+        ),
+    )
+
+
 _PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
     ".md": _markdown,
     ".txt": _plain,
     ".pdf": _pdf,
     ".pptx": _pptx,
+    ".docx": _docx,
 }
 SUPPORTED_SUFFIXES = frozenset(_PARSERS)
 

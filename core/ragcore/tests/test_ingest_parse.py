@@ -282,3 +282,79 @@ def test_the_real_ocr_engine_reads_rendered_text(tmp_path: Path, text_pdf) -> No
         document.close()
 
     assert "hello" in text.lower()
+
+
+W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def _paragraph(style: str | None, text: str) -> str:
+    props = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
+    return f"<w:p>{props}<w:r><w:t>{text}</w:t></w:r></w:p>"
+
+
+def _write_docx(path: Path, body: str, styles: dict[str, str]) -> None:
+    """A minimal .docx: the document body XML plus styleId -> style name."""
+    style_xml = "".join(
+        f'<w:style w:type="paragraph" w:styleId="{sid}"><w:name w:val="{name}"/></w:style>'
+        for sid, name in styles.items()
+    )
+    with ZipFile(path, "w") as archive:
+        archive.writestr(
+            "word/document.xml",
+            f'<w:document xmlns:w="{W_NS}"><w:body>{body}</w:body></w:document>',
+        )
+        archive.writestr("word/styles.xml", f'<w:styles xmlns:w="{W_NS}">{style_xml}</w:styles>')
+
+
+def test_docx_splits_into_pages_on_headings(tmp_path: Path) -> None:
+    source = tmp_path / "report.docx"
+    body = "".join(
+        _paragraph(style, text)
+        for style, text in [
+            ("Title", "Quarterly Report"),
+            (None, "Intro paragraph."),
+            ("Heading1", "Results"),
+            (None, "Revenue grew."),
+            ("Heading2", "Risks"),
+            (None, "Supply is tight."),
+        ]
+    )
+    _write_docx(
+        source, body, {"Title": "Title", "Heading1": "heading 1", "Heading2": "heading 2"}
+    )
+
+    parsed = parse(source)
+
+    assert parsed.title == "Quarterly Report"
+    assert [p.section_path for p in parsed.pages] == [
+        "Quarterly Report",
+        "Quarterly Report > Results",
+        "Quarterly Report > Risks",
+    ]
+    assert parsed.pages[1].text == "Revenue grew."
+
+
+def test_docx_headings_are_found_in_a_localized_word(tmp_path: Path) -> None:
+    # Italian Word names the style id "Titolo1"; the style name stays "heading 1".
+    source = tmp_path / "relazione.docx"
+    body = _paragraph(None, "Premessa.") + _paragraph("Titolo1", "Risultati") + _paragraph(
+        None, "I ricavi sono cresciuti."
+    )
+    _write_docx(source, body, {"Titolo1": "heading 1"})
+
+    parsed = parse(source)
+
+    assert parsed.title == "relazione"
+    assert parsed.pages[1].section_path == "relazione > Risultati"
+    assert parsed.pages[1].text == "I ricavi sono cresciuti."
+
+
+def test_docx_table_cells_are_kept(tmp_path: Path) -> None:
+    source = tmp_path / "table.docx"
+    cell = "<w:tc>" + _paragraph(None, "{}") + "</w:tc>"
+    row = "<w:tr>" + cell.format("Model") + cell.format("EmbeddingGemma") + "</w:tr>"
+    _write_docx(source, _paragraph(None, "Specs.") + f"<w:tbl>{row}</w:tbl>", {})
+
+    parsed = parse(source)
+
+    assert parsed.pages[0].text == "Specs.\nModel\nEmbeddingGemma"
