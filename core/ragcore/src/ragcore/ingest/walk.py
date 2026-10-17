@@ -66,6 +66,7 @@ MIME_BY_EXT = {
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".html": "text/html",
     ".htm": "text/html",
+    ".csv": "text/csv",
 }
 
 READ_CHUNK = 1024 * 1024  # stream digests in 1 MiB blocks; never read a whole file into memory

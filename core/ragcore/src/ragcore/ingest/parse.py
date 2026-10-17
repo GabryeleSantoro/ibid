@@ -48,6 +48,8 @@ Semantics decided here, that Task 8/9 depend on:
 
 from __future__ import annotations
 
+import csv
+import io
 import posixpath
 import re
 import unicodedata
@@ -364,6 +366,36 @@ def _html(path: Path) -> ParsedDoc:
     )
 
 
+CSV_ROWS_PER_PAGE = 50
+
+
+def _csv(path: Path) -> ParsedDoc:
+    """Rows as ``column: value`` lines, CSV_ROWS_PER_PAGE rows per page.
+
+    Every row repeats its column names, so a chunk cut from the middle of the
+    file still says what each value is.
+    """
+    # ponytail: reads the whole file; max_file_mb (default 100) bounds it.
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t|")
+    except csv.Error:  # one column, or too irregular to tell
+        dialect = csv.excel
+    rows = [row for row in csv.reader(io.StringIO(text), dialect) if any(c.strip() for c in row)]
+    if len(rows) < 2:
+        return ParsedDoc(title=path.stem, pages=[])
+    header, body = [h.strip() for h in rows[0]], rows[1:]
+    sections = []
+    for start in range(0, len(body), CSV_ROWS_PER_PAGE):
+        group = body[start : start + CSV_ROWS_PER_PAGE]
+        lines = [
+            "; ".join(f"{h}: {v.strip()}" for h, v in zip(header, row, strict=False) if v.strip())
+            for row in group
+        ]
+        sections.append((f"{path.stem} > Rows {start + 1}-{start + len(group)}", "\n".join(lines)))
+    return ParsedDoc(title=path.stem, pages=_paginate(sections))
+
+
 _PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
     ".md": _markdown,
     ".txt": _plain,
@@ -372,6 +404,7 @@ _PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
     ".docx": _docx,
     ".html": _html,
     ".htm": _html,
+    ".csv": _csv,
 }
 SUPPORTED_SUFFIXES = frozenset(_PARSERS)
 

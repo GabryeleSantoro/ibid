@@ -405,3 +405,47 @@ def test_an_inline_svg_title_does_not_replace_the_page_title(tmp_path: Path) -> 
 
     assert parsed.title == "Hybrid Search"
     assert parsed.pages[0].text == "Body text."
+
+
+def test_csv_rows_keep_their_column_names(tmp_path: Path) -> None:
+    source = tmp_path / "models.csv"
+    source.write_text("name,dim\nEmbeddingGemma,768\nQwen3-Embedding,1024\n")
+
+    parsed = parse(source)
+
+    assert parsed.title == "models"
+    assert parsed.pages[0].section_path == "models > Rows 1-2"
+    assert parsed.pages[0].text == (
+        "name: EmbeddingGemma; dim: 768\nname: Qwen3-Embedding; dim: 1024"
+    )
+
+
+def test_csv_reads_an_excel_semicolon_export_with_a_bom(tmp_path: Path) -> None:
+    source = tmp_path / "fatture.csv"
+    source.write_bytes("\ufeffcliente;importo\nRossi;1.200,50\n".encode())
+
+    parsed = parse(source)
+
+    assert parsed.pages[0].text == "cliente: Rossi; importo: 1.200,50"
+
+
+def test_csv_pages_hold_a_fixed_number_of_rows(tmp_path: Path) -> None:
+    from ragcore.ingest.parse import CSV_ROWS_PER_PAGE
+
+    source = tmp_path / "big.csv"
+    rows = "\n".join(f"{i},x" for i in range(CSV_ROWS_PER_PAGE + 1))
+    source.write_text(f"n,v\n{rows}\n")
+
+    parsed = parse(source)
+
+    assert [p.section_path for p in parsed.pages] == [
+        f"big > Rows 1-{CSV_ROWS_PER_PAGE}",
+        f"big > Rows {CSV_ROWS_PER_PAGE + 1}-{CSV_ROWS_PER_PAGE + 1}",
+    ]
+
+
+def test_a_header_only_csv_has_no_pages(tmp_path: Path) -> None:
+    source = tmp_path / "empty.csv"
+    source.write_text("a,b\n")
+
+    assert parse(source).pages == []

@@ -23,7 +23,8 @@ import { errorText } from "@/lib/errors";
 import { api } from "@/lib/ipc";
 import { keys } from "@/lib/queries";
 
-const DEFAULT_INCLUDE = "**/*.md, **/*.txt, **/*.pdf, **/*.pptx, **/*.docx";
+const DEFAULT_INCLUDE =
+  "**/*.md, **/*.txt, **/*.pdf, **/*.pptx, **/*.docx, **/*.html, **/*.htm, **/*.csv";
 const DEFAULT_EXCLUDE = "**/node_modules/**, **/.git/**";
 
 function globs(value: string): string[] {
