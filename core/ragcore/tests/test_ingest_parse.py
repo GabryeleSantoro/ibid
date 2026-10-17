@@ -449,3 +449,35 @@ def test_a_header_only_csv_has_no_pages(tmp_path: Path) -> None:
     source.write_text("a,b\n")
 
     assert parse(source).pages == []
+
+
+ITALIAN = (
+    "Il recupero dei passaggi combina la ricerca semantica con quella per parole chiave. "
+    "I risultati vengono poi riordinati da un modello che valuta quanto ogni passaggio "
+    "risponde alla domanda dell'utente, e solo i migliori arrivano al modello linguistico."
+)
+ENGLISH = (
+    "Passage retrieval combines semantic search with keyword search. The results are then "
+    "reordered by a model that judges how well each passage answers the user's question, "
+    "and only the best of them reach the language model that writes the answer."
+)
+
+
+def test_language_is_detected_per_document() -> None:
+    from ragcore.ingest.parse import detect_language
+
+    assert detect_language(ITALIAN) == "it"
+    assert detect_language(ENGLISH) == "en"
+
+
+def test_too_little_text_has_no_language() -> None:
+    from ragcore.ingest.parse import detect_language
+
+    assert detect_language("ok") is None
+
+
+def test_parse_fills_the_language(tmp_path: Path) -> None:
+    source = tmp_path / "nota.md"
+    source.write_text(f"# Nota\n\n{ITALIAN}\n")
+
+    assert parse(source).lang == "it"

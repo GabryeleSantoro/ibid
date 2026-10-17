@@ -441,6 +441,7 @@ class RealStore(Store):
             mime=found.mime,
             size_bytes=found.size_bytes,
             n_pages=len(p.parsed.pages) if p.parsed else None,
+            lang=p.parsed.lang if p.parsed else None,
             n_chunks=len(p.chunks),
             status="error" if p.error else "skipped" if scan else "indexed",
             error=p.error or (NO_TEXT_LAYER if scan else None),

@@ -86,6 +86,7 @@ class ParsedDoc:
     title: str
     pages: list[ParsedPage]
     needs_ocr: bool = False
+    lang: str | None = None
 
 
 def _title(text: str, fallback: str) -> str:
@@ -409,9 +410,25 @@ _PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
 SUPPORTED_SUFFIXES = frozenset(_PARSERS)
 
 
+LANG_MIN_CHARS = 200  # below this py3langid guesses; no answer beats a wrong one
+LANG_SAMPLE_CHARS = 5000
+
+
+def detect_language(text: str) -> str | None:
+    """ISO 639-1 code for ``text``, or None when there is too little to tell."""
+    sample = text[:LANG_SAMPLE_CHARS]
+    if len(sample.strip()) < LANG_MIN_CHARS:
+        return None
+    import py3langid  # loads its model on first use
+
+    return py3langid.classify(sample)[0]
+
+
 def parse(path: Path) -> ParsedDoc:
     """Parse ``path`` into a ``ParsedDoc``, dispatching on its lowercased suffix."""
     handler = _PARSERS.get(path.suffix.lower())
     if handler is None:
         raise UnsupportedFormat(f"no parser for {path.suffix!r}")
-    return handler(path)
+    doc = handler(path)
+    doc.lang = detect_language(" ".join(page.text for page in doc.pages))
+    return doc

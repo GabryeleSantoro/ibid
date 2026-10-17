@@ -18,6 +18,7 @@ uv run --group build pyinstaller \
   --collect-all pypdfium2 \
   --collect-all rapidocr \
   --collect-all onnxruntime \
+  --collect-data py3langid \
   --collect-all uvicorn \
   --add-data "$root/fixtures/docs:fixtures/docs" \
   core/ragcore/src/ragcore/__main__.py

@@ -380,3 +380,20 @@ async def test_a_scan_ocr_cannot_read_is_skipped_with_a_reason(
 
     assert document.status == "skipped"
     assert document.error == "no text found, not even by OCR"
+
+
+async def test_indexed_documents_carry_their_language(tmp_path: Path) -> None:
+    docs = tmp_path / "it"
+    docs.mkdir()
+    (docs / "nota.md").write_text(
+        "# Nota\n\nIl recupero dei passaggi combina la ricerca semantica con quella per "
+        "parole chiave. I risultati vengono poi riordinati da un modello che valuta quanto "
+        "ogni passaggio risponde alla domanda dell'utente, e solo i migliori arrivano al "
+        "modello linguistico che scrive la risposta.\n"
+    )
+    store = build(tmp_path)
+    source = add(store, docs)
+
+    [document] = await store.ingest_source_async(source.id)
+
+    assert document.lang == "it"
