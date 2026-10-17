@@ -358,3 +358,50 @@ def test_docx_table_cells_are_kept(tmp_path: Path) -> None:
     parsed = parse(source)
 
     assert parsed.pages[0].text == "Specs.\nModel\nEmbeddingGemma"
+
+
+def test_html_keeps_visible_text_and_splits_on_headings(tmp_path: Path) -> None:
+    source = tmp_path / "page.html"
+    source.write_text(
+        "<html><head><title>Hybrid Search</title><style>p {color: red}</style>"
+        "<script>var x = 1;</script></head><body>"
+        "<p>Intro &amp; overview.</p>"
+        "<h2>Fusion</h2><p>RRF merges   two\nrankings.</p><ul><li>k = 60</li></ul>"
+        "<h2>Filters</h2><p>Filter before fusion.</p>"
+        "</body></html>"
+    )
+
+    parsed = parse(source)
+
+    assert parsed.title == "Hybrid Search"
+    assert [p.section_path for p in parsed.pages] == [
+        "Hybrid Search",
+        "Hybrid Search > Fusion",
+        "Hybrid Search > Filters",
+    ]
+    assert parsed.pages[0].text == "Intro & overview."
+    assert parsed.pages[1].text == "RRF merges two rankings.\nk = 60"
+    assert "var x" not in " ".join(p.text for p in parsed.pages)
+
+
+def test_html_without_a_title_falls_back_to_the_first_heading(tmp_path: Path) -> None:
+    source = tmp_path / "notes.htm"
+    source.write_text("<h1>Release notes</h1><p>Fixed the converter.</p>")
+
+    parsed = parse(source)
+
+    assert parsed.title == "Release notes"
+    assert parsed.pages[-1].text == "Fixed the converter."
+
+
+def test_an_inline_svg_title_does_not_replace_the_page_title(tmp_path: Path) -> None:
+    source = tmp_path / "icons.html"
+    source.write_text(
+        "<title>Hybrid Search</title>"
+        '<svg><title>search icon</title><path d="M0 0"/></svg><p>Body text.</p>'
+    )
+
+    parsed = parse(source)
+
+    assert parsed.title == "Hybrid Search"
+    assert parsed.pages[0].text == "Body text."

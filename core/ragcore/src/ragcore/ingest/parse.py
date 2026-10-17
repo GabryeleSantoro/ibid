@@ -54,6 +54,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -291,12 +292,86 @@ def _docx(path: Path) -> ParsedDoc:
     )
 
 
+class _HtmlText(HTMLParser):
+    """Visible text, split at <h1>/<h2> the way markdown splits at ``##``."""
+
+    _SKIP = frozenset({"script", "style", "noscript", "template", "svg"})
+    _BREAK = frozenset({"p", "div", "li", "br", "tr", "td", "th", "pre", "blockquote",
+                        "section", "article", "h3", "h4", "h5", "h6"})
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.title = ""
+        self.sections: list[tuple[str | None, list[str]]] = [(None, [])]
+        self._skip = 0
+        self._capture: list[str] | None = None  # the <title> or heading being read
+        self._in_title = False
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag in self._SKIP:
+            self._skip += 1
+        elif self._skip:  # e.g. an icon's <svg><title>: not the page title
+            return
+        elif tag == "title":
+            self._in_title, self._capture = True, []
+        elif tag in ("h1", "h2"):
+            self._capture = []
+        elif tag in self._BREAK:
+            self.sections[-1][1].append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._SKIP:
+            self._skip = max(0, self._skip - 1)
+        elif tag == "title" and self._capture is not None:
+            self.title = " ".join("".join(self._capture).split())
+            self._in_title, self._capture = False, None
+        elif tag in ("h1", "h2") and self._capture is not None and not self._in_title:
+            heading = " ".join("".join(self._capture).split())
+            self._capture = None
+            if heading:
+                self.sections.append((heading, []))
+
+    def handle_data(self, data: str) -> None:
+        if self._skip:
+            return
+        # Source newlines are layout, not breaks; only block tags (above) start a new line.
+        # ponytail: <pre> loses its line breaks too.
+        text = re.sub(r"\s+", " ", data)
+        (self._capture if self._capture is not None else self.sections[-1][1]).append(text)
+
+
+def _tidy(parts: list[str]) -> str:
+    """Collapse runs of whitespace inside lines; drop blank lines."""
+    lines = (" ".join(line.split()) for line in "".join(parts).splitlines())
+    return "\n".join(line for line in lines if line)
+
+
+def _html(path: Path) -> ParsedDoc:
+    # ponytail: read as UTF-8 like markdown; a legacy <meta charset> page decodes with U+FFFD.
+    reader = _HtmlText()
+    reader.feed(path.read_text(encoding="utf-8", errors="replace"))
+    reader.close()
+    first_heading = next((h for h, _ in reader.sections if h), None)
+    title = reader.title or first_heading or path.stem
+    return ParsedDoc(
+        title=title,
+        pages=_paginate(
+            [
+                (title if heading is None else f"{title} > {heading}", _tidy(parts))
+                for heading, parts in reader.sections
+            ]
+        ),
+    )
+
+
 _PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
     ".md": _markdown,
     ".txt": _plain,
     ".pdf": _pdf,
     ".pptx": _pptx,
     ".docx": _docx,
+    ".html": _html,
+    ".htm": _html,
 }
 SUPPORTED_SUFFIXES = frozenset(_PARSERS)
 

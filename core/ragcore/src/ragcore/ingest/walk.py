@@ -64,6 +64,8 @@ MIME_BY_EXT = {
     ".pdf": "application/pdf",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".html": "text/html",
+    ".htm": "text/html",
 }
 
 READ_CHUNK = 1024 * 1024  # stream digests in 1 MiB blocks; never read a whole file into memory
