@@ -18,7 +18,6 @@ from ragcore.api.schemas import (
     Connection,
     Document,
     DocumentContent,
-    EvalSet,
     Folder,
     IndexStats,
     InstalledModel,
@@ -58,7 +57,6 @@ class StorePort(Protocol):
     sessions: dict[str, ChatSession]
     projects: dict[str, ChatProject]
     messages: dict[str, list[ChatMessage]]
-    eval_sets: list[EvalSet]
     retriever: RetrieverPort
     index_blocked: str | None
 

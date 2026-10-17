@@ -5,11 +5,19 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
-def test_the_shipped_eval_sets_are_listed(client: TestClient) -> None:
+def test_the_committed_golden_sets_are_listed(client: TestClient) -> None:
     names = {s["name"]: s for s in client.get("/eval/sets").json()}
 
-    assert set(names) == {"base", "private"}
-    assert names["base"]["n_questions"] == 50
+    assert names["base"]["n_questions"] == 20
+
+
+def test_a_private_set_in_the_data_dir_is_listed_too(client: TestClient, tmp_path) -> None:
+    (tmp_path / "eval").mkdir()
+    (tmp_path / "eval" / "mine.jsonl").write_text('{"q": "x", "expected": ["a.md"]}\n')
+
+    names = {s["name"] for s in client.get("/eval/sets").json()}
+
+    assert {"base", "mine"} <= names
 
 
 def test_an_unknown_set_is_a_404(client: TestClient) -> None:
@@ -70,7 +78,7 @@ def test_the_baseline_comparison_is_opt_out(client: TestClient, read_events) -> 
     assert metrics["baseline_recall_at_6"] is None
 
 
-def test_an_empty_index_still_produces_a_result(client: TestClient, read_events) -> None:
+def test_an_empty_index_scores_zero(client: TestClient, read_events) -> None:
     client.post("/settings/wipe", json={"confirm": "DELETE"})
 
     with client.stream("POST", "/eval/run", json={"set_name": "base"}) as response:
@@ -78,5 +86,5 @@ def test_an_empty_index_still_produces_a_result(client: TestClient, read_events)
 
     assert events[-1][0] == "result"
     metrics = events[-1][1]["metrics"]
-    assert metrics["n_questions"] == 0
+    assert metrics["n_questions"] == 20
     assert metrics["recall_at_6"] == 0.0

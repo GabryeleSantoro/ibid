@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
+from ragcore.eval import GOLDEN_DIR, baseline_recall
 
 Events = Callable[..., list[tuple[str, dict]]]
 
@@ -268,4 +269,6 @@ def test_eval_reports_progress_then_metrics(client: TestClient, read_events: Eve
     result = events[-1][1]
     assert result["metrics"]["n_questions"] == len(result["questions"])
     assert 0.0 <= result["metrics"]["recall_at_6"] <= 1.0
-    assert result["metrics"]["baseline_recall_at_6"] is not None
+    # The committed baseline's recall@6; None until one is committed next to the set.
+    expected = baseline_recall(GOLDEN_DIR / "base.baseline.json")
+    assert result["metrics"]["baseline_recall_at_6"] == expected

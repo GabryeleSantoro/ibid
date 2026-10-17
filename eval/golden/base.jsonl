@@ -1,0 +1,20 @@
+{"q": "why can't I just change the embedding model in an app update", "expected": ["embedding-models.md#Why the embedder"]}
+{"q": "how much storage does a million 1024-dimension vectors take", "expected": ["embedding-models.md#Choosing a dimension"]}
+{"q": "what does the k constant do in reciprocal rank fusion", "expected": ["hybrid-search.md#Reciprocal rank fusion"]}
+{"q": "why keyword search alone misses paraphrased questions", "expected": ["hybrid-search.md#Two kinds of miss"]}
+{"q": "make the system say it found nothing instead of returning irrelevant passages", "expected": ["reranking.md#The minimum-score gate"]}
+{"q": "can I replace the reranker without rebuilding the index", "expected": ["reranking.md#Swapping rerankers"]}
+{"q": "how many candidates to send to the cross-encoder on a laptop without a GPU", "expected": ["reranking.md#Candidate count"]}
+{"q": "problem with cutting documents every N tokens", "expected": ["chunking-strategies.md#Why fixed-size"]}
+{"q": "send the bigger surrounding passage to the LLM but search on small ones", "expected": ["chunking-strategies.md#Parent and child"]}
+{"q": "how many golden questions do I need to start evaluating", "expected": ["evaluation-runbook.md#Build the golden set"]}
+{"q": "stop retrieval quality silently regressing in CI", "expected": ["evaluation-runbook.md#Regressions are the point"]}
+{"q": "what to do with citations that don't match retrieved passages", "expected": ["retrieval-augmented-generation.md#Grounding"]}
+{"q": "questions about the main themes across all reports", "expected": ["retrieval-augmented-generation.md#When retrieval is the wrong"], "type": "global"}
+{"q": "should language filters run before or after retrieval", "expected": ["hybrid-search.md#Filters belong before fusion"]}
+{"q": "perché non posso cambiare il modello di embedding senza reindicizzare", "expected": ["embedding-models.md#Why the embedder"]}
+{"q": "quanti candidati passare al reranker su un computer senza GPU", "expected": ["reranking.md#Candidate count"]}
+{"q": "cosa succede quando nessun passaggio è abbastanza rilevante", "expected": ["reranking.md#The minimum-score gate"]}
+{"q": "dividere i documenti seguendo titoli e struttura invece di token fissi", "expected": ["chunking-strategies.md#Structure first"]}
+{"q": "quali metriche usare per valutare il recupero dei passaggi", "expected": ["evaluation-runbook.md#Metrics that earn"]}
+{"q": "come si scartano le citazioni non valide nelle risposte", "expected": ["retrieval-augmented-generation.md#Grounding"]}

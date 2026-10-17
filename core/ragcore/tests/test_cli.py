@@ -233,3 +233,61 @@ def test_ask_stops_the_built_in_model_so_no_server_outlives_the_command(
     main(["ask", "what do cross encoders do", "--data-dir", str(tmp_path / "data")])
 
     assert stops == [1]
+
+
+def _golden(tmp_path: Path) -> Path:
+    golden = tmp_path / "set.jsonl"
+    golden.write_text(
+        '{"q": "cross encoders score query passage pairs", '
+        '"expected": ["reranking.md#Cross encoders"]}\n'
+    )
+    return golden
+
+
+def test_eval_scores_a_golden_set_against_a_corpus(
+    tmp_path: Path, fake_models, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["eval", str(_golden(tmp_path)), "--corpus", str(corpus(tmp_path))]) == 0
+
+    out = capsys.readouterr().out
+    assert "hit " in out  # rank under the fake embedder is arbitrary; that it's in the top 6 isn't
+    assert "recall@6 1.00" in out
+
+
+def test_the_eval_gate_fails_below_the_baseline(tmp_path: Path, fake_models) -> None:
+    golden = _golden(tmp_path)
+    docs = corpus(tmp_path)
+    baseline = golden.with_suffix(".baseline.json")
+
+    baseline.write_text('{"metrics": {"recall_at_6": 2.0}}')
+    assert main(["eval", str(golden), "--corpus", str(docs), "--gate"]) == 1
+
+    baseline.write_text('{"metrics": {"recall_at_6": 0.0}}')
+    assert main(["eval", str(golden), "--corpus", str(docs), "--gate"]) == 0
+
+
+def test_the_eval_gate_needs_a_baseline(tmp_path: Path, fake_models) -> None:
+    assert main(
+        ["eval", str(_golden(tmp_path)), "--corpus", str(corpus(tmp_path)), "--gate"]
+    ) == 1
+
+
+def test_eval_report_is_a_baseline_the_gate_can_read(tmp_path: Path, fake_models) -> None:
+    from ragcore.eval import baseline_recall
+
+    golden = _golden(tmp_path)
+    report = golden.with_suffix(".baseline.json")
+    docs = corpus(tmp_path)
+
+    assert main(["eval", str(golden), "--corpus", str(docs), "--report", str(report)]) == 0
+    assert baseline_recall(report) == 1.0
+
+
+def test_eval_never_touches_the_users_library(
+    tmp_path: Path, fake_models, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+
+    main(["eval", str(_golden(tmp_path)), "--corpus", str(corpus(tmp_path))])
+
+    assert not (tmp_path / "home" / ".ibid").exists()

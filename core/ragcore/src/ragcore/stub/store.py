@@ -24,7 +24,6 @@ from ragcore.api.schemas import (
     DocumentChunkRef,
     DocumentContent,
     DocumentPage,
-    EvalSet,
     Folder,
     IndexStats,
     InstalledModel,
@@ -81,10 +80,6 @@ class Store:
             storage_path=str(config.data_dir),
             active_connection_id=None,
         )
-        self.eval_sets = [
-            EvalSet(name="base", n_questions=50, description="Public corpus, committed"),
-            EvalSet(name="private", n_questions=32, description="Personal documents, local only"),
-        ]
 
         self.load_chats()
         self._seed()
