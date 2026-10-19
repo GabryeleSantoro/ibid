@@ -503,27 +503,23 @@ async def convert_slides(
                 title, output_path, len(markdown), time.perf_counter() - started,
             )
 
+            # The file is the deliverable: an indexing failure (embedder down) must not
+            # swallow it or kill the stream; the next scan of the source indexes it.
             source = _global_source(store, global_dir)
-            indexed = await store.ingest_source_async(source.id)
+            try:
+                indexed = await store.ingest_source_async(source.id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("%s: saved but not indexed: %s", title, exc)
+                indexed = []
             saved_document = next(
                 (document for document in indexed if Path(document.path) == output_path), None
             )
-            if saved_document is None:
-                error = PresentationErrorEvent(
-                    presentation_index=index,
-                    presentation_total=total,
-                    title=title,
-                    message="Markdown file was saved but could not be indexed",
-                )
-                failed.append(error)
-                yield frame("presentation_error", error)
-                continue
 
             saved_event = ConversionSavedEvent(
                 presentation_index=index,
                 path=str(output_path),
-                title=saved_document.title,
-                document_id=saved_document.id,
+                title=saved_document.title if saved_document else title,
+                document_id=saved_document.id if saved_document else None,
             )
             saved.append(saved_event)
             yield frame("conversion_saved", saved_event)

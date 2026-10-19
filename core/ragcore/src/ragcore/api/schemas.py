@@ -319,7 +319,7 @@ class ConversionSavedEvent(BaseModel):
     presentation_index: int
     path: str
     title: str
-    document_id: str
+    document_id: str | None  # None when saved but not indexed yet
 
 
 class PresentationErrorEvent(BaseModel):

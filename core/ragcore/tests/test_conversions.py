@@ -501,3 +501,25 @@ def test_a_coded_generation_failure_reaches_the_ui_with_its_code(
     error = next(data for name, data in events if name == "presentation_error")
     assert error["code"] == "llm_idle_timeout"
     assert error["params"]["name"] == "LM Studio"
+
+
+def test_an_indexing_failure_still_delivers_the_saved_file(
+    client, read_events, monkeypatch, tmp_path
+) -> None:
+    _mock_ok(client, monkeypatch)
+
+    async def embedder_down(source_id):
+        raise ConnectionError("All connection attempts failed")
+
+    monkeypatch.setattr(client.app.state.store, "ingest_source_async", embedder_down)
+    slide = tmp_path / "deck.md"
+    slide.write_text("# Deck\n\n## Context\n\nReadable content.\n")
+
+    with client.stream("POST", "/conversions/slides", json={"file_paths": [str(slide)]}) as r:
+        events = read_events(r)
+
+    names = [name for name, _ in events]
+    assert names[-2:] == ["conversion_saved", "conversion_done"]
+    saved = events[-1][1]["saved"][0]
+    assert Path(saved["path"]).is_file()
+    assert saved["document_id"] is None

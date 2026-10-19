@@ -269,6 +269,8 @@ export function ConverterView() {
       },
       {
         onEvent: handleEvent,
+        // A stream that ends without conversion_done (sidecar error) must not spin forever.
+        onClosed: () => setRunning(false),
         onFailed: (message) => {
           setRunning(false);
           setRequestError(message);

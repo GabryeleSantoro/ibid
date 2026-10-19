@@ -1096,7 +1096,7 @@ export interface components {
             /** Title */
             title: string;
             /** Document Id */
-            document_id: string;
+            document_id: string | null;
         };
         /** ConversionStartEvent */
         ConversionStartEvent: {
