@@ -19,7 +19,7 @@ import logging
 import shutil
 import threading
 import time
-from collections import deque
+from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -35,6 +35,7 @@ from ragcore.api.schemas import (
     Source,
     SourceCreate,
 )
+from ragcore.brain.cards import DocCard, build_card
 from ragcore.config import Config
 from ragcore.ingest.chunk import Chunk, chunk_document
 from ragcore.ingest.parse import SUPPORTED_SUFFIXES, ParsedDoc, parse
@@ -52,6 +53,7 @@ FLUSH_ROWS = 1024
 # Embedding requests in flight. llama-server is compute-bound; a second request
 # only hides the round trip between batches (~7% measured on EmbeddingGemma).
 MAX_IN_FLIGHT = 2
+BACKFILL_BATCH = 64  # documents per LanceDB read when filling missing cards
 
 
 def _now() -> datetime:
@@ -400,8 +402,19 @@ class RealStore(Store):
         for p in files:
             self._save_pages(p)
             documents.append(self._document(source_id, p, now))
+        cards = [
+            card
+            for p in files
+            if (
+                card := build_card(
+                    p.doc_id, [c.chunk_id for c in p.chunks], [c.text for c in p.chunks], p.vectors
+                )
+            )
+        ]
         self.meta.save_documents(
-            documents, [(str(p.found.path), p.found.sha256) for p in files if p.error is None]
+            documents,
+            [(str(p.found.path), p.found.sha256) for p in files if p.error is None],
+            cards,
         )
         self._update_documents(put=documents)
         return documents
@@ -478,6 +491,46 @@ class RealStore(Store):
                 for chunk_id, page, start, end in data["chunks"]
             ],
         )
+
+    def backfill_cards(self) -> list[DocCard]:
+        """Cards for indexed documents that predate them, built from their stored chunks.
+
+        A batch that fails stays without cards (logged) and is retried on the next start.
+        """
+        if self.index_blocked:
+            return []
+        have = self.meta.card_ids()
+        missing = sorted(
+            d.id for d in self.documents.values() if d.status == "indexed" and d.id not in have
+        )
+        built: list[DocCard] = []
+        for start in range(0, len(missing), BACKFILL_BATCH):
+            batch = missing[start : start + BACKFILL_BATCH]
+            try:
+                rows = self.vectors.rows_for_docs(batch)
+            except Exception as exc:  # noqa: BLE001 - those documents retry on the next start
+                logger.warning("doc cards for %d documents not built: %s", len(batch), exc)
+                continue
+            by_doc: dict[str, list[ChunkRow]] = defaultdict(list)
+            for row in rows:
+                by_doc[row["doc_id"]].append(row)
+            cards = [
+                card
+                for doc_id, doc_rows in by_doc.items()
+                if (
+                    card := build_card(
+                        doc_id,
+                        [r["chunk_id"] for r in doc_rows],
+                        [r["text"] for r in doc_rows],
+                        [r["vector"] for r in doc_rows],
+                    )
+                )
+            ]
+            self.meta.save_cards(cards)
+            built.extend(cards)
+        if built:
+            logger.info("built doc cards for %d documents indexed before cards", len(built))
+        return built
 
     def index_stats(self) -> IndexStats:
         documents = self.documents.values()

@@ -159,6 +159,15 @@ class VectorStore:
         by_id = {row["chunk_id"]: row for row in found}
         return [by_id[cid] for cid in chunk_ids if cid in by_id]
 
+    def rows_for_docs(self, doc_ids: list[str]) -> list[ChunkRow]:
+        """Every chunk row, vector included, of these documents; any order."""
+        total = self.chunks.count_rows()
+        if not doc_ids or total == 0:
+            return []
+        return (
+            self.chunks.search().where(f"doc_id IN ({_sql_list(doc_ids)})").limit(total).to_list()
+        )
+
     def chunk_count(self) -> int:
         return self.chunks.count_rows()
 

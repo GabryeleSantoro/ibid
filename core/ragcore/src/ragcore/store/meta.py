@@ -15,12 +15,15 @@ that seam is built on top of it in a later task.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import threading
 import uuid
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
+
+import numpy as np
 
 from ragcore.api.schemas import (
     AppSettings,
@@ -30,6 +33,7 @@ from ragcore.api.schemas import (
     Source,
     SourceCreate,
 )
+from ragcore.brain.cards import DocCard
 
 _SETTINGS_KEY = "app"
 _UPSERT_DOCUMENT = (
@@ -40,6 +44,23 @@ _UPSERT_DOCUMENT = (
 _UPSERT_SHA = (
     "INSERT INTO shas (path, sha) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET sha = excluded.sha"
 )
+_INSERT_CARD = "INSERT OR REPLACE INTO doc_cards (doc_id, vector, json) VALUES (?, ?, ?)"
+
+
+def _placeholders(values: list) -> str:
+    return ",".join("?" * len(values))
+
+
+def _card_row(card: DocCard) -> tuple[str, bytes, str]:
+    payload = {"summary_chunk_ids": card.summary_chunk_ids, "terms": card.terms}
+    return card.doc_id, card.vector.astype(np.float32).tobytes(), json.dumps(payload)
+
+
+def _card(doc_id: str, blob: bytes, raw: str) -> DocCard:
+    data = json.loads(raw)
+    return DocCard(
+        doc_id, np.frombuffer(blob, dtype=np.float32), data["summary_chunk_ids"], data["terms"]
+    )
 
 
 def _now() -> datetime:
@@ -91,6 +112,10 @@ class MetaStore:
                 "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, json TEXT NOT NULL)"
             )
             self._conn.execute("CREATE TABLE IF NOT EXISTS removed (path TEXT PRIMARY KEY)")
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS doc_cards ("
+                "doc_id TEXT PRIMARY KEY, vector BLOB NOT NULL, json TEXT NOT NULL)"
+            )
 
     # ------------------------------------------------------------------ sources
 
@@ -123,6 +148,7 @@ class MetaStore:
             doc_ids = [row[0] for row in rows]
             paths = [row[1] for row in rows]
             self._conn.execute("DELETE FROM documents WHERE source_id = ?", (source_id,))
+            self._delete_cards(doc_ids)
             if paths:
                 placeholders = ",".join("?" * len(paths))
                 self._conn.execute(f"DELETE FROM shas WHERE path IN ({placeholders})", paths)
@@ -131,13 +157,47 @@ class MetaStore:
 
     # ---------------------------------------------------------------- documents
 
-    def save_documents(self, docs: list[Document], shas: list[tuple[str, str]]) -> None:
-        """Upsert documents and ``(path, sha)`` digests in one transaction."""
+    def save_documents(
+        self, docs: list[Document], shas: list[tuple[str, str]], cards: Iterable[DocCard] = ()
+    ) -> None:
+        """Upsert documents, ``(path, sha)`` digests and doc cards in one transaction.
+
+        Every saved document drops its old card first, so one that no longer has chunks
+        keeps none.
+        """
+        ids = [d.id for d in docs]
         with self._lock, self._conn:
             self._conn.executemany(
                 _UPSERT_DOCUMENT, [(d.id, d.source_id, d.path, d.model_dump_json()) for d in docs]
             )
             self._conn.executemany(_UPSERT_SHA, shas)
+            self._delete_cards(ids)
+            self._conn.executemany(_INSERT_CARD, [_card_row(c) for c in cards])
+
+    def _delete_cards(self, doc_ids: list[str]) -> None:
+        """Caller holds the lock and the transaction."""
+        if doc_ids:
+            self._conn.execute(
+                f"DELETE FROM doc_cards WHERE doc_id IN ({_placeholders(doc_ids)})", doc_ids
+            )
+
+    def save_cards(self, cards: Iterable[DocCard]) -> None:
+        with self._lock, self._conn:
+            self._conn.executemany(_INSERT_CARD, [_card_row(c) for c in cards])
+
+    def load_cards(self, doc_ids: list[str] | None = None) -> dict[str, DocCard]:
+        query, params = "SELECT doc_id, vector, json FROM doc_cards", []
+        if doc_ids is not None:
+            if not doc_ids:
+                return {}
+            query, params = f"{query} WHERE doc_id IN ({_placeholders(doc_ids)})", doc_ids
+        with self._lock:
+            rows = self._conn.execute(query, params).fetchall()
+        return {row[0]: _card(*row) for row in rows}
+
+    def card_ids(self) -> set[str]:
+        with self._lock:
+            return {row[0] for row in self._conn.execute("SELECT doc_id FROM doc_cards")}
 
     def list_documents(self) -> dict[str, Document]:
         with self._lock:
@@ -157,6 +217,7 @@ class MetaStore:
         placeholders = ",".join("?" * len(doc_ids))
         with self._lock, self._conn:
             self._conn.execute(f"DELETE FROM documents WHERE id IN ({placeholders})", doc_ids)
+            self._delete_cards(doc_ids)
 
     # --------------------------------------------------------------------- shas
 
@@ -198,6 +259,7 @@ class MetaStore:
             self._conn.execute("DELETE FROM sessions")
             self._conn.execute("DELETE FROM messages")
             self._conn.execute("DELETE FROM removed")
+            self._conn.execute("DELETE FROM doc_cards")
 
     # -------------------------------------------------------------------- chats
 
