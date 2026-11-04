@@ -288,6 +288,28 @@ class ErrorEvent(BaseModel):
     params: dict[str, object] = Field(default_factory=dict)
 
 
+# ---------------------------------------------------------------------------- brain
+
+
+class Topic(BaseModel):
+    id: str
+    parent_id: str | None = None
+    level: int
+    label: str
+    keywords: list[str]
+    doc_ids: list[str] = Field(description="Every document in this topic's subtree.")
+    rep_chunk_ids: list[str]
+
+
+class TopicTree(BaseModel):
+    """The topic map, flat; parents come before their children."""
+
+    status: Literal["none", "building", "ready"]
+    built_at: datetime | None = None
+    changed_since: int = 0
+    topics: list[Topic]
+
+
 # --------------------------------------------------------------- slide to text
 
 

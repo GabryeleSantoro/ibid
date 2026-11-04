@@ -34,8 +34,16 @@ from ragcore.api.schemas import (
     SourceCreate,
 )
 from ragcore.brain.cards import DocCard
+from ragcore.brain.cluster import Node
 
 _SETTINGS_KEY = "app"
+_BRAIN_KEY = "brain"
+EMPTY_BRAIN_STATE = {"built_at": None, "changed_since": 0}
+_UPSERT_TOPIC = (
+    "INSERT INTO topics (id, parent_id, level, centroid, json) VALUES (?, ?, ?, ?, ?) "
+    "ON CONFLICT(id) DO UPDATE SET parent_id = excluded.parent_id, level = excluded.level, "
+    "centroid = excluded.centroid, json = excluded.json"
+)
 _UPSERT_DOCUMENT = (
     "INSERT INTO documents (id, source_id, path, json) VALUES (?, ?, ?, ?) "
     "ON CONFLICT(id) DO UPDATE SET "
@@ -60,6 +68,22 @@ def _card(doc_id: str, blob: bytes, raw: str) -> DocCard:
     data = json.loads(raw)
     return DocCard(
         doc_id, np.frombuffer(blob, dtype=np.float32), data["summary_chunk_ids"], data["terms"]
+    )
+
+
+def _topic_row(node: Node) -> tuple:
+    payload = {
+        "label": node.label,
+        "keywords": node.keywords,
+        "doc_ids": node.doc_ids,
+        "rep_chunk_ids": node.rep_chunk_ids,
+    }
+    return (
+        node.id,
+        node.parent_id,
+        node.level,
+        node.centroid.astype(np.float32).tobytes(),
+        json.dumps(payload),
     )
 
 
@@ -115,6 +139,10 @@ class MetaStore:
             self._conn.execute(
                 "CREATE TABLE IF NOT EXISTS doc_cards ("
                 "doc_id TEXT PRIMARY KEY, vector BLOB NOT NULL, json TEXT NOT NULL)"
+            )
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, parent_id TEXT, "
+                "level INTEGER NOT NULL, centroid BLOB NOT NULL, json TEXT NOT NULL)"
             )
 
     # ------------------------------------------------------------------ sources
@@ -259,7 +287,66 @@ class MetaStore:
             self._conn.execute("DELETE FROM sessions")
             self._conn.execute("DELETE FROM messages")
             self._conn.execute("DELETE FROM removed")
-            self._conn.execute("DELETE FROM doc_cards")
+            self._clear_brain()
+
+    # -------------------------------------------------------------------- brain
+
+    def load_topics(self) -> dict[str, Node]:
+        """In the order they were written: parents first, siblings largest first."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, parent_id, level, centroid, json FROM topics ORDER BY rowid"
+            ).fetchall()
+        nodes: dict[str, Node] = {}
+        for node_id, parent_id, level, blob, raw in rows:
+            data = json.loads(raw)
+            nodes[node_id] = Node(
+                id=node_id,
+                parent_id=parent_id,
+                level=level,
+                centroid=np.frombuffer(blob, dtype=np.float32),
+                doc_ids=data["doc_ids"],
+                keywords=data["keywords"],
+                label=data["label"],
+                rep_chunk_ids=data["rep_chunk_ids"],
+            )
+        return nodes
+
+    def replace_topics(self, nodes: list[Node], state: dict) -> None:
+        """A recluster: the whole tree and its state in one transaction."""
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM topics")
+            self._conn.executemany(_UPSERT_TOPIC, [_topic_row(n) for n in nodes])
+            self._save_brain_state(state)
+
+    def save_topics(self, nodes: list[Node], state: dict) -> None:
+        """An assignment: only the topics whose documents changed."""
+        with self._lock, self._conn:
+            self._conn.executemany(_UPSERT_TOPIC, [_topic_row(n) for n in nodes])
+            self._save_brain_state(state)
+
+    def _save_brain_state(self, state: dict) -> None:
+        self._conn.execute(
+            "INSERT INTO settings (key, json) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET json = excluded.json",
+            (_BRAIN_KEY, json.dumps(state)),
+        )
+
+    def brain_state(self) -> dict:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT json FROM settings WHERE key = ?", (_BRAIN_KEY,)
+            ).fetchone()
+        return json.loads(row[0]) if row else dict(EMPTY_BRAIN_STATE)
+
+    def clear_brain(self) -> None:
+        with self._lock, self._conn:
+            self._clear_brain()
+
+    def _clear_brain(self) -> None:
+        self._conn.execute("DELETE FROM doc_cards")
+        self._conn.execute("DELETE FROM topics")
+        self._conn.execute("DELETE FROM settings WHERE key = ?", (_BRAIN_KEY,))
 
     # -------------------------------------------------------------------- chats
 

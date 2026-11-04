@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 from ragcore.api.schemas import SourceCreate
+from ragcore.brain import topics as topics_module
+from ragcore.brain.cards import build_card
 from ragcore.config import Config
 from ragcore.models.embed import EMBED_DIM
 from ragcore.models.fakes import FakeEmbedClient
@@ -120,3 +123,171 @@ async def test_wipe_deletes_the_cards(tmp_path: Path) -> None:
     store.wipe(keep_connections=True)
 
     assert store.meta.card_ids() == set()
+
+
+# ------------------------------------------------------------------- topics
+
+
+def leaves(store: RealStore) -> list:
+    parents = {n.parent_id for n in store.brain.nodes.values()}
+    return [n for n in store.brain.nodes.values() if n.id not in parents]
+
+
+async def test_six_cards_build_a_tree_over_every_document(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+
+    await store.brain.settle()  # the ingest scheduled it: no tree yet, 8 cards
+
+    tree = store.brain.tree()
+    assert tree.status == "ready"
+    assert tree.built_at is not None and tree.changed_since == 0
+    top = [t for t in tree.topics if t.level == 0]
+    assert sorted(d for t in top for d in t.doc_ids) == sorted(store.documents)
+    assert all(t.label and t.rep_chunk_ids for t in top)
+    assert store.index_stats().topics == len(tree.topics)
+
+
+async def test_under_six_cards_there_is_no_tree(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 5)
+
+    await store.brain.recluster()
+
+    assert store.brain.tree().status == "none"
+    assert store.brain.tree().topics == []
+
+
+async def test_the_tree_survives_a_restart(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    before = store.brain.tree()
+    store.close()
+
+    after = build(tmp_path).brain.tree()
+
+    assert after.topics == before.topics
+    assert after.built_at == before.built_at
+
+
+async def test_a_new_document_joins_its_nearest_leaf(tmp_path: Path) -> None:
+    store, source = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    path = tmp_path / "library" / "fresh.md"
+    path.write_text("# Fresh\n\nviolin chord melody tomato.\n")
+
+    await store.ingest_source_async(source.id)
+
+    doc_id = doc_id_for(str(path))
+    card = store.meta.load_cards([doc_id])[doc_id]
+    nearest = max(leaves(store), key=lambda n: float(n.centroid @ card.vector))
+    holders = {n.id for n in store.brain.nodes.values() if doc_id in n.doc_ids}
+    lineage, node_id = set(), nearest.id
+    while node_id is not None:
+        lineage.add(node_id)
+        node_id = store.brain.nodes[node_id].parent_id
+    assert holders == lineage
+    assert store.brain.tree().changed_since == 1
+
+
+async def test_a_removed_document_leaves_every_topic(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    doc_id = sorted(store.documents)[0]
+
+    store.remove_document(doc_id)
+
+    assert all(doc_id not in t.doc_ids for t in store.brain.tree().topics)
+    assert store.brain.tree().changed_since == 1
+
+
+async def test_churn_past_fifteen_percent_schedules_a_recluster(tmp_path: Path) -> None:
+    store, source = await ingested(tmp_path, 10)
+    await store.brain.settle()
+    built = store.brain.tree().built_at
+    for i in (0, 1):  # 2 of 10 documents: 20%
+        (tmp_path / "library" / f"note{i}.md").write_text(f"# Note {i}\n\nrewritten {i} text.\n")
+
+    await store.ingest_source_async(source.id)
+    await store.brain.settle()
+
+    tree = store.brain.tree()
+    assert tree.built_at > built
+    assert tree.changed_since == 0
+
+
+async def test_rebuilding_the_index_clears_the_brain(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+
+    store.rebuild_index()
+
+    assert store.meta.card_ids() == set()
+    assert store.brain.tree().topics == []
+    store.close()
+    assert build(tmp_path).brain.tree().topics == []
+
+
+async def test_wipe_clears_the_brain(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+
+    store.wipe(keep_connections=True)
+
+    assert store.brain.tree().status == "none"
+    store.close()
+    reopened = build(tmp_path)
+    assert reopened.brain.tree().topics == []
+    assert reopened.brain.tree().changed_since == 0
+
+
+async def test_a_doc_added_during_a_recluster_joins_the_new_tree(
+    tmp_path: Path, monkeypatch
+) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    gone = sorted(store.documents)[0]
+    [vector] = await store.embedder.embed(["late arrival words"])
+    late = build_card("doc_late", ["doc_late:1:0"], ["late arrival words"], [vector])
+    real_build = topics_module.build_tree
+
+    def racing(*args, **kwargs):
+        nodes = real_build(*args, **kwargs)
+        store.meta.save_cards([late])  # an ingest that landed while the tree was building
+        store.meta.delete_documents([gone])  # and a removal
+        return nodes
+
+    monkeypatch.setattr(topics_module, "build_tree", racing)
+    await store.brain.recluster()
+
+    held = {d for t in store.brain.tree().topics for d in t.doc_ids}
+    assert "doc_late" in held
+    assert gone not in held
+
+
+async def test_a_recluster_that_fails_keeps_the_previous_tree(tmp_path: Path, monkeypatch) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    before = store.brain.tree().topics
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(topics_module, "build_tree", broken)
+    with pytest.raises(RuntimeError, match="boom"):
+        await store.brain.recluster()
+
+    assert store.brain.tree().topics == before
+    assert store.brain.tree().status == "ready"
+
+
+async def test_start_backfills_and_builds_a_tree(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    store.brain.clear()  # an older library: documents indexed, no cards, no tree
+    store.close()
+    reopened = build(tmp_path)
+
+    await reopened.brain.start()
+    await reopened.brain.settle()
+
+    assert reopened.meta.card_ids() == set(reopened.documents)
+    assert reopened.brain.tree().status == "ready"
