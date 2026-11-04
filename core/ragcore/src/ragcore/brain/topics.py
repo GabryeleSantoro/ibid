@@ -15,11 +15,13 @@ from collections.abc import Iterator
 from dataclasses import replace
 from datetime import UTC, datetime
 
+import httpx
 import numpy as np
 
 from ragcore.api.schemas import Topic, TopicTree
 from ragcore.brain.cards import DocCard
 from ragcore.brain.cluster import Node, build_tree
+from ragcore.brain.route import Examples, Routed, embed_examples, keyword_route, score_route
 from ragcore.store.meta import EMPTY_BRAIN_STATE
 
 logger = logging.getLogger("ragcore.brain")
@@ -59,6 +61,7 @@ class Brain:
         self._recluster = asyncio.Lock()
         self._generation = 0  # bumped by clear(); a recluster started before it is discarded
         self._task: asyncio.Task[None] | None = None
+        self._examples: Examples | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
     # ------------------------------------------------------------------- reads
@@ -76,6 +79,18 @@ class Brain:
     def topic(self, topic_id: str) -> Topic | None:
         node = self.nodes.get(topic_id)
         return to_topic(node) if node else None
+
+    async def route(self, question: str) -> Routed:
+        """Embed the question (and, once, the examples); keywords alone if the embedder is down."""
+        embedder = self.store.embedder
+        try:
+            if self._examples is None:
+                self._examples = await embed_examples(embedder)
+            [vector] = await embedder.embed([question], query=True)
+        except httpx.HTTPError as exc:
+            logger.warning("router could not embed, routing by keywords: %s", exc)
+            return keyword_route(question)
+        return score_route(question, vector, self._examples)
 
     # ----------------------------------------------------------------- changes
 

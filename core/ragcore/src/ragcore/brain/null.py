@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ragcore.api.schemas import Topic, TopicTree
+from ragcore.brain.route import Routed, keyword_route
 
 
 class NullBrain:
@@ -19,3 +20,6 @@ class NullBrain:
 
     async def recluster(self) -> None:
         return None
+
+    async def route(self, question: str) -> Routed:
+        return keyword_route(question)

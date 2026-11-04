@@ -8,7 +8,7 @@ routes; the routes are contract and do not bend.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from ragcore.api.schemas import (
     AppSettings,
@@ -30,6 +30,9 @@ from ragcore.api.schemas import (
     Topic,
     TopicTree,
 )
+
+if TYPE_CHECKING:
+    from ragcore.brain.route import Routed
 
 
 @runtime_checkable
@@ -56,6 +59,7 @@ class BrainPort(Protocol):
     def topic(self, topic_id: str) -> Topic | None: ...
     async def start(self) -> None: ...
     async def recluster(self) -> None: ...
+    async def route(self, question: str) -> Routed: ...
 
 
 @runtime_checkable

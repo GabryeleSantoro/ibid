@@ -5,45 +5,16 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 from ragcore.api.routes.query import (
     chat_history,
     project_filters,
     retrieval_query,
-    route_mode,
     tokens_per_second,
 )
 from ragcore.api.schemas import ChatMessage, QueryFilters
 
 # ----------------------------------------------------------------- mode router
-
-
-@pytest.mark.parametrize(
-    "question",
-    [
-        "What are the main themes across the corpus?",
-        "Summarize all documents",
-        "Compare the two approaches",
-        "What topics does this library cover?",
-    ],
-)
-def test_a_corpus_wide_question_routes_to_global(question: str) -> None:
-    mode, reason = route_mode(question)
-
-    assert mode == "global"
-    assert "asks about the corpus" in reason
-
-
-def test_a_passage_question_routes_to_local() -> None:
-    mode, reason = route_mode("How does reciprocal rank fusion combine two rankings?")
-
-    assert mode == "local"
-    assert reason
-
-
-def test_the_router_ignores_case() -> None:
-    assert route_mode("SUMMARIZE ALL the notes")[0] == "global"
 
 
 def test_the_route_reports_a_manual_mode_as_manual(client: TestClient, read_events) -> None:

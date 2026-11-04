@@ -37,20 +37,6 @@ from ragcore.llm import LlmError, system_prompt_for
 
 router = APIRouter(tags=["query"])
 
-# Questions about the corpus as a whole cannot be answered from six passages.
-GLOBAL_HINTS = (
-    "across",
-    "overall",
-    "in general",
-    "main themes",
-    "summarize all",
-    "summarise all",
-    "every document",
-    "all documents",
-    "what topics",
-    "compare the",
-)
-
 _cancelled: set[str] = set()
 
 
@@ -135,14 +121,6 @@ def retrieval_query(question: str, history: list[tuple[str, str]]) -> str:
     return f"{previous}\n{question}" if previous else question
 
 
-def route_mode(question: str) -> tuple[str, str]:
-    lowered = question.lower()
-    hit = next((h for h in GLOBAL_HINTS if h in lowered), None)
-    if hit:
-        return "global", f'Phrase "{hit}" asks about the corpus, not a passage'
-    return "local", "Answerable from individual passages"
-
-
 @router.post("/query")
 async def query(payload: QueryRequest, request: Request, store: StoreDep, answerer: AnswererDep):
     query_id = payload.query_id or f"q_{uuid.uuid4().hex[:10]}"
@@ -156,7 +134,8 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
         started = time.perf_counter()
         yield frame("start", StartEvent(query_id=query_id, session_id=session_id))
 
-        mode, reason = route_mode(question)
+        routed = await store.brain.route(question)
+        mode, reason = routed.mode, routed.reason
         if payload.mode != "auto":
             mode, reason = payload.mode, "Set manually"
         yield frame("mode", ModeEvent(mode=mode, reason=reason))
