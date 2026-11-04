@@ -581,6 +581,9 @@ class EvalQuestionResult(BaseModel):
     rank: int | None = None
     ndcg: float = 0
     latency_ms: float = 0
+    coverage: float | None = None  # global rows: share of expected docs in the packed context
+    routed: Literal["local", "global"] | None = None
+    route_reason: str | None = None
 
 
 class EvalMetrics(BaseModel):
@@ -593,6 +596,8 @@ class EvalMetrics(BaseModel):
     latency_p50: StageLatency
     latency_p95: StageLatency
     baseline_recall_at_6: float | None = None
+    global_coverage: float | None = None
+    router_accuracy: float | None = None
 
 
 class EvalResult(BaseModel):

@@ -1,0 +1,363 @@
+{
+  "metrics": {
+    "set_name": "brain",
+    "n_questions": 30,
+    "recall_at_1": 1.0,
+    "recall_at_6": 1.0,
+    "mrr": 1.0,
+    "ndcg_at_6": 1.0,
+    "latency_p50": {
+      "embed_ms": 0.0,
+      "dense_ms": 0.0,
+      "bm25_ms": 0.0,
+      "rerank_ms": 0.0,
+      "pack_ms": 0.0,
+      "llm_first_token_ms": 0.0,
+      "total_ms": 35.58
+    },
+    "latency_p95": {
+      "embed_ms": 0.0,
+      "dense_ms": 0.0,
+      "bm25_ms": 0.0,
+      "rerank_ms": 0.0,
+      "pack_ms": 0.0,
+      "llm_first_token_ms": 0.0,
+      "total_ms": 40.79
+    },
+    "baseline_recall_at_6": null,
+    "global_coverage": 1.0,
+    "router_accuracy": 0.9333
+  },
+  "questions": [
+    {
+      "q": "what are the main themes in my library",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 38.85,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.50)"
+    },
+    {
+      "q": "what topics do my notes cover",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 37.73,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.43)"
+    },
+    {
+      "q": "give me an overview of everything I have written",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 37.17,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.21)"
+    },
+    {
+      "q": "summarize all of my documents in a few lines",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 36.03,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.30)"
+    },
+    {
+      "q": "across all my notes, what do I care about most",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 37.25,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.45)"
+    },
+    {
+      "q": "how do my notes on cooking and gardening connect",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 37.83,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.34)"
+    },
+    {
+      "q": "compare what I wrote about cycling with what I wrote about money",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 38.96,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.12)"
+    },
+    {
+      "q": "overall, what do my notes say about the night sky",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 36.2,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.35)"
+    },
+    {
+      "q": "in general, what have I learned about building search systems",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 40.79,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.07)"
+    },
+    {
+      "q": "quali sono i temi principali della mia libreria",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 38.19,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.45)"
+    },
+    {
+      "q": "di quali argomenti parlano i miei appunti",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 36.07,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.27)"
+    },
+    {
+      "q": "fammi una panoramica di tutti i miei documenti",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 49.36,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.17)"
+    },
+    {
+      "q": "riassumi tutto quello che ho scritto",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 35.58,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.28)"
+    },
+    {
+      "q": "che legame c'è tra i miei appunti di cucina e quelli sull'orto",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 37.44,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.18)"
+    },
+    {
+      "q": "in generale cosa dicono le mie note sulle finanze personali",
+      "type": "global",
+      "hit": true,
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 39.29,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.20)"
+    },
+    {
+      "q": "what oven temperature does the sourdough recipe use",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 18.99,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.18)"
+    },
+    {
+      "q": "what tyre pressure for 25 mm road tyres",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 16.47,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.06)"
+    },
+    {
+      "q": "what does the 50/30/20 rule split my income into",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 18.86,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.04)"
+    },
+    {
+      "q": "when do the Perseids peak",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 13.91,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.06)"
+    },
+    {
+      "q": "what carbon to nitrogen ratio should a compost heap have",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 15.65,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.05)"
+    },
+    {
+      "q": "how many candidates does the cross-encoder rescore",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 17.01,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.05)"
+    },
+    {
+      "q": "how many months of expenses should an emergency fund cover",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 15.35,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.03)"
+    },
+    {
+      "q": "why does aperture matter more than magnification",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 14.99,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.05)"
+    },
+    {
+      "q": "how much chain stretch means it is time to replace it",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 16.2,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.11)"
+    },
+    {
+      "q": "quanta farina per ogni uovo nella pasta fresca",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 16.0,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.13)"
+    },
+    {
+      "q": "quando seminare i pomodori in semenzaio",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 15.76,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.03)"
+    },
+    {
+      "q": "quanto dura una seduta sui rulli in inverno",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 17.02,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.06)"
+    },
+    {
+      "q": "come tenere traccia delle bollette di casa",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 18.4,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.09)"
+    },
+    {
+      "q": "quali metriche usare per valutare il recupero dei passaggi",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 16.45,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.12)"
+    },
+    {
+      "q": "quali stelle si vedono nella costellazione di Orione",
+      "type": "local",
+      "hit": true,
+      "rank": 1,
+      "ndcg": 1.0,
+      "latency_ms": 17.77,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.04)"
+    }
+  ]
+}

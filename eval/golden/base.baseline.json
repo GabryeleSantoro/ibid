@@ -2,10 +2,10 @@
   "metrics": {
     "set_name": "base",
     "n_questions": 20,
-    "recall_at_1": 0.85,
+    "recall_at_1": 0.8421,
     "recall_at_6": 1.0,
-    "mrr": 0.9083,
-    "ndcg_at_6": 0.9315,
+    "mrr": 0.9035,
+    "ndcg_at_6": 0.9279,
     "latency_p50": {
       "embed_ms": 0.0,
       "dense_ms": 0.0,
@@ -13,7 +13,7 @@
       "rerank_ms": 0.0,
       "pack_ms": 0.0,
       "llm_first_token_ms": 0.0,
-      "total_ms": 14.44
+      "total_ms": 16.58
     },
     "latency_p95": {
       "embed_ms": 0.0,
@@ -22,9 +22,11 @@
       "rerank_ms": 0.0,
       "pack_ms": 0.0,
       "llm_first_token_ms": 0.0,
-      "total_ms": 31.61
+      "total_ms": 26.28
     },
-    "baseline_recall_at_6": null
+    "baseline_recall_at_6": 1.0,
+    "global_coverage": 1.0,
+    "router_accuracy": 0.8
   },
   "questions": [
     {
@@ -33,7 +35,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 23.85
+      "latency_ms": 26.28,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.07)"
     },
     {
       "q": "how much storage does a million 1024-dimension vectors take",
@@ -41,7 +46,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 31.61
+      "latency_ms": 18.18,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.06)"
     },
     {
       "q": "what does the k constant do in reciprocal rank fusion",
@@ -49,7 +57,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 21.76
+      "latency_ms": 15.82,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.42)"
     },
     {
       "q": "why keyword search alone misses paraphrased questions",
@@ -57,7 +68,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.59
+      "latency_ms": 14.56,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.01)"
     },
     {
       "q": "make the system say it found nothing instead of returning irrelevant passages",
@@ -65,7 +79,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 15.03
+      "latency_ms": 16.5,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.01)"
     },
     {
       "q": "can I replace the reranker without rebuilding the index",
@@ -73,7 +90,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.53
+      "latency_ms": 15.32,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.07)"
     },
     {
       "q": "how many candidates to send to the cross-encoder on a laptop without a GPU",
@@ -81,7 +101,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 17.4
+      "latency_ms": 17.55,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.10)"
     },
     {
       "q": "problem with cutting documents every N tokens",
@@ -89,7 +112,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 13.58
+      "latency_ms": 16.92,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.06)"
     },
     {
       "q": "send the bigger surrounding passage to the LLM but search on small ones",
@@ -97,7 +123,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 15.15
+      "latency_ms": 16.51,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.02)"
     },
     {
       "q": "how many golden questions do I need to start evaluating",
@@ -105,7 +134,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 13.72
+      "latency_ms": 15.31,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Local (router -0.06)"
     },
     {
       "q": "stop retrieval quality silently regressing in CI",
@@ -113,7 +145,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 13.22
+      "latency_ms": 17.85,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.02)"
     },
     {
       "q": "what to do with citations that don't match retrieved passages",
@@ -121,15 +156,21 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.2
+      "latency_ms": 16.24,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.06)"
     },
     {
       "q": "questions about the main themes across all reports",
       "type": "global",
       "hit": true,
-      "rank": 1,
-      "ndcg": 1.0,
-      "latency_ms": 13.0
+      "rank": null,
+      "ndcg": 0.0,
+      "latency_ms": 14.96,
+      "coverage": 1.0,
+      "routed": "global",
+      "route_reason": "Global (router 0.23)"
     },
     {
       "q": "should language filters run before or after retrieval",
@@ -137,7 +178,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 17.44
+      "latency_ms": 14.92,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.04)"
     },
     {
       "q": "perché non posso cambiare il modello di embedding senza reindicizzare",
@@ -145,7 +189,10 @@
       "hit": true,
       "rank": 3,
       "ndcg": 0.5,
-      "latency_ms": 14.08
+      "latency_ms": 16.58,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.02)"
     },
     {
       "q": "quanti candidati passare al reranker su un computer senza GPU",
@@ -153,7 +200,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.37
+      "latency_ms": 22.4,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router -0.01)"
     },
     {
       "q": "cosa succede quando nessun passaggio è abbastanza rilevante",
@@ -161,7 +211,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 12.55
+      "latency_ms": 16.53,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.05)"
     },
     {
       "q": "dividere i documenti seguendo titoli e struttura invece di token fissi",
@@ -169,7 +222,10 @@
       "hit": true,
       "rank": 3,
       "ndcg": 0.5,
-      "latency_ms": 14.38
+      "latency_ms": 17.05,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.10)"
     },
     {
       "q": "quali metriche usare per valutare il recupero dei passaggi",
@@ -177,7 +233,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.18
+      "latency_ms": 18.1,
+      "coverage": null,
+      "routed": "global",
+      "route_reason": "Global (router 0.12)"
     },
     {
       "q": "come si scartano le citazioni non valide nelle risposte",
@@ -185,7 +244,10 @@
       "hit": true,
       "rank": 2,
       "ndcg": 0.6309297535714575,
-      "latency_ms": 14.44
+      "latency_ms": 17.99,
+      "coverage": null,
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.04)"
     }
   ]
 }

@@ -4,14 +4,17 @@ A golden line is ``{"q": ..., "expected": ["file.md#Section prefix", ...], "type
 An expected entry matches a retrieved chunk from a file with that name whose section
 heading starts with the text after ``#`` (no ``#``: any chunk of that file). File names,
 not doc ids: ids hash absolute paths and differ on every machine.
+Expected file names are ``fnmatch`` patterns (``garden-*.md``).
 """
 
 from __future__ import annotations
 
 import json
 import math
+import time
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
 
 from ragcore.api.schemas import (
@@ -27,6 +30,7 @@ K = 6
 # The CI gate's tolerance: one question of the 20-question base set. (The roadmap's
 # "2 points" assumed a 50-question set, where one question is 2 points.)
 MAX_RECALL_DROP = 0.05
+MAX_BRAIN_DROP = 0.04  # one router question of 30; 2 points is under one question
 # The committed sets; exists in a dev checkout only, never in the packaged sidecar.
 GOLDEN_DIR = next(
     (
@@ -70,7 +74,7 @@ def golden_sets(data_dir: Path) -> list[Path]:
 
 def matches(chunk: RetrievedChunk, path: str | None, expected: str) -> bool:
     name, _, section = expected.partition("#")
-    if path is None or Path(path).name != name:
+    if path is None or not fnmatch(Path(path).name, name):
         return False
     return (chunk.section_path or "").split(" > ")[-1].startswith(section)
 
@@ -89,6 +93,15 @@ def first_hit(
     )
 
 
+def coverage(chunks: list[RetrievedChunk], paths: dict[str, str], expected: Iterable[str]) -> float:
+    """Share of expected entries that at least one packed passage matches."""
+    expected = tuple(expected)
+    if not expected:
+        return 0.0
+    found = sum(any(matches(c, paths.get(c.doc_id), e) for c in chunks) for e in expected)
+    return found / len(expected)
+
+
 async def score_questions(
     retriever,
     questions: list[GoldenQuestion],
@@ -96,8 +109,33 @@ async def score_questions(
     settings: RetrievalSettings,
     doc_meta: dict[str, dict],
     paths: dict[str, str],
+    brain=None,
 ) -> AsyncIterator[EvalQuestionResult]:
+    """With a brain, every row is routed too and global rows score the packed global context."""
     for question in questions:
+        routed = await brain.route(question.q) if brain is not None else None
+        route = {"routed": routed.mode, "route_reason": routed.reason} if routed else {}
+        if routed is not None and question.type == "global":
+            started = time.perf_counter()
+            context = await brain.for_query(
+                routed.vector,
+                search=question.q,
+                question=question.q,
+                filters=QueryFilters(),
+                doc_meta=doc_meta,
+                topic_id=None,
+                budget=settings.global_token_budget,
+            )
+            share = coverage(context.chunks if context else [], paths, question.expected)
+            yield EvalQuestionResult(
+                q=question.q,
+                type="global",
+                hit=share > 0,
+                coverage=round(share, 4),
+                latency_ms=round((time.perf_counter() - started) * 1000, 2),
+                **route,
+            )
+            continue
         chunks, latency, _ = await retriever.asearch(
             question.q, settings=settings, filters=QueryFilters(), doc_meta=doc_meta
         )
@@ -110,13 +148,17 @@ async def score_questions(
             # One relevant target per question, so the ideal DCG is 1.
             ndcg=1 / math.log2(rank + 1) if rank else 0.0,
             latency_ms=round(latency.total_ms, 2),
+            **route,
         )
 
 
 def summarize(
     set_name: str, results: list[EvalQuestionResult], baseline_recall: float | None = None
 ) -> EvalMetrics:
-    n = max(len(results), 1)
+    local = [r for r in results if r.coverage is None]
+    n = max(len(local), 1)
+    covered = [r.coverage for r in results if r.coverage is not None]
+    routed = [r for r in results if r.routed is not None]
 
     def percentile(p: float) -> StageLatency:
         values = sorted(r.latency_ms for r in results) or [0.0]
@@ -125,19 +167,50 @@ def summarize(
     return EvalMetrics(
         set_name=set_name,
         n_questions=len(results),
-        recall_at_1=round(sum(r.rank == 1 for r in results) / n, 4),
-        recall_at_6=round(sum(r.hit for r in results) / n, 4),
-        mrr=round(sum(1 / r.rank for r in results if r.rank) / n, 4),
-        ndcg_at_6=round(sum(r.ndcg for r in results) / n, 4),
+        recall_at_1=round(sum(r.rank == 1 for r in local) / n, 4),
+        recall_at_6=round(sum(r.hit for r in local) / n, 4),
+        mrr=round(sum(1 / r.rank for r in local if r.rank) / n, 4),
+        ndcg_at_6=round(sum(r.ndcg for r in local) / n, 4),
         latency_p50=percentile(0.5),
         latency_p95=percentile(0.95),
         baseline_recall_at_6=baseline_recall,
+        global_coverage=round(sum(covered) / len(covered), 4) if covered else None,
+        router_accuracy=(
+            round(sum(r.routed == r.type for r in routed) / len(routed), 4) if routed else None
+        ),
     )
 
 
-def baseline_recall(path: Path) -> float | None:
-    """recall@6 from a report ``ragcore eval --report`` wrote; None if there is none."""
+def baseline_metrics(path: Path) -> dict | None:
+    """The metrics block of a report ``ragcore eval --report`` wrote; None if there is none."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))["metrics"]["recall_at_6"]
+        metrics = json.loads(path.read_text(encoding="utf-8"))["metrics"]
     except (FileNotFoundError, KeyError, TypeError, json.JSONDecodeError):
         return None
+    return metrics if isinstance(metrics, dict) else None
+
+
+def baseline_recall(path: Path) -> float | None:
+    metrics = baseline_metrics(path)
+    return metrics.get("recall_at_6") if metrics else None
+
+
+def gate_failures(metrics: EvalMetrics, baseline: dict) -> list[str]:
+    """Every measured metric may fall at most its tolerance below the committed baseline."""
+    checks = (
+        ("recall@6", metrics.recall_at_6, "recall_at_6", MAX_RECALL_DROP),
+        ("global coverage", metrics.global_coverage, "global_coverage", MAX_BRAIN_DROP),
+        ("router accuracy", metrics.router_accuracy, "router_accuracy", MAX_BRAIN_DROP),
+    )
+    failures: list[str] = []
+    for name, value, key, tolerance in checks:
+        if value is None:
+            continue
+        base = baseline.get(key)
+        if base is None:
+            failures.append(f"{name}: no baseline value")
+        elif value < base - tolerance:
+            failures.append(
+                f"{name} {value:.2f} is more than {tolerance} below the baseline {base:.2f}"
+            )
+    return failures

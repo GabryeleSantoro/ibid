@@ -173,8 +173,8 @@ async def _ask(args: argparse.Namespace) -> int:
 
 async def _eval(args: argparse.Namespace) -> int:
     from ragcore.eval import (
-        MAX_RECALL_DROP,
-        baseline_recall,
+        baseline_metrics,
+        gate_failures,
         load_golden,
         score_questions,
         summarize,
@@ -192,6 +192,9 @@ async def _eval(args: argparse.Namespace) -> int:
             if source is None:
                 source = store.add_source(SourceCreate(path=corpus))
             await store.ingest_source_async(source.id)
+            use_brain = any(q.type == "global" for q in questions)
+            if use_brain:
+                await store.brain.settle()  # the ingest scheduled the recluster
             paths = {d.id: d.path for d in store.documents.values() if d.source_id == source.id}
             doc_meta = {k: v for k, v in store.doc_meta().items() if k in paths}
             results = [
@@ -202,6 +205,7 @@ async def _eval(args: argparse.Namespace) -> int:
                     settings=store.settings.retrieval,
                     doc_meta=doc_meta,
                     paths=paths,
+                    brain=store.brain if use_brain else None,
                 )
             ]
         except httpx.HTTPError as exc:
@@ -213,13 +217,25 @@ async def _eval(args: argparse.Namespace) -> int:
         finally:
             store.close()
 
-    baseline = baseline_recall(args.set.with_suffix(".baseline.json"))
-    metrics = summarize(args.set.stem, results, baseline)
+    baseline = baseline_metrics(args.set.with_suffix(".baseline.json"))
+    metrics = summarize(args.set.stem, results, baseline.get("recall_at_6") if baseline else None)
     for r in results:
-        print(f"{f'hit {r.rank}' if r.hit else 'MISS '}  {r.q}")
+        if r.coverage is not None:
+            score = f"cov {r.coverage:.2f}"
+        else:
+            score = f"hit {r.rank}" if r.hit else "MISS "
+        routed = f" [{r.routed}]" if r.routed else ""
+        print(f"{score}{routed}  {r.q}")
+        if r.routed and r.routed != r.type:
+            print(f"    misrouted as {r.routed}: {r.route_reason}")
+    extra = ""
+    if metrics.global_coverage is not None:
+        extra += f"  coverage {metrics.global_coverage:.2f}"
+    if metrics.router_accuracy is not None:
+        extra += f"  router {metrics.router_accuracy:.2f}"
     print(
         f"\nrecall@1 {metrics.recall_at_1:.2f}  recall@6 {metrics.recall_at_6:.2f}  "
-        f"MRR {metrics.mrr:.2f}  nDCG@6 {metrics.ndcg_at_6:.2f}  "
+        f"MRR {metrics.mrr:.2f}  nDCG@6 {metrics.ndcg_at_6:.2f}{extra}  "
         f"p50 {metrics.latency_p50.total_ms:.0f} ms"
     )
     if args.report:
@@ -230,14 +246,12 @@ async def _eval(args: argparse.Namespace) -> int:
     if baseline is None:
         print(f"error: no baseline at {args.set.with_suffix('.baseline.json')}", file=sys.stderr)
         return 1
-    if metrics.recall_at_6 < baseline - MAX_RECALL_DROP:
-        print(
-            f"FAIL: recall@6 {metrics.recall_at_6:.2f} is more than {MAX_RECALL_DROP} below "
-            f"the baseline {baseline:.2f}",
-            file=sys.stderr,
-        )
+    failures = gate_failures(metrics, baseline)
+    for failure in failures:
+        print(f"FAIL: {failure}", file=sys.stderr)
+    if failures:
         return 1
-    print(f"gate: recall@6 within {MAX_RECALL_DROP} of the baseline {baseline:.2f}")
+    print("gate: every metric within tolerance of the baseline")
     return 0
 
 

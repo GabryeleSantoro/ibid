@@ -3,14 +3,24 @@
 from __future__ import annotations
 
 import math
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
 from ragcore.api.schemas import EvalQuestionResult, RetrievedChunk
-from ragcore.eval import GOLDEN_DIR, first_hit, load_golden, matches, summarize
+from ragcore.eval import (
+    GOLDEN_DIR,
+    coverage,
+    first_hit,
+    gate_failures,
+    load_golden,
+    matches,
+    summarize,
+)
 from ragcore.ingest.parse import parse
 
 FIXTURE_DOCS = Path(__file__).resolve().parents[3] / "fixtures" / "docs"
+BRAIN_DOCS = Path(__file__).resolve().parents[3] / "fixtures" / "brain"
 
 
 def chunk(doc_id: str, section_path: str) -> RetrievedChunk:
@@ -77,3 +87,53 @@ def test_every_base_question_points_at_a_real_fixture_section() -> None:
             name, _, section = expected.partition("#")
             assert name in headings, expected
             assert any(h.startswith(section) for h in headings[name]), expected
+
+
+def test_coverage_is_the_share_of_expected_patterns_present() -> None:
+    chunks = [chunk("doc_a", ""), chunk("doc_b", "")]
+    paths = {"doc_a": "/x/garden-tomatoes.md", "doc_b": "/x/astro-moon.md"}
+
+    assert coverage(chunks, paths, ["garden-*.md", "astro-*.md", "cook-*.md", "rag-*.md"]) == 0.5
+    assert coverage([], paths, ["garden-*.md"]) == 0.0
+
+
+def test_global_rows_report_coverage_and_routing_not_recall() -> None:
+    results = [
+        EvalQuestionResult(q="a", type="local", hit=True, rank=1, ndcg=1.0, routed="local"),
+        EvalQuestionResult(q="b", type="global", hit=True, coverage=0.5, routed="global"),
+        EvalQuestionResult(q="c", type="global", hit=True, coverage=1.0, routed="local"),
+    ]
+
+    metrics = summarize("t", results)
+
+    assert metrics.recall_at_6 == 1.0  # the local row only
+    assert metrics.global_coverage == 0.75
+    assert metrics.router_accuracy == round(2 / 3, 4)
+
+
+def test_the_gate_holds_each_metric_to_its_baseline() -> None:
+    metrics = summarize(
+        "t", [EvalQuestionResult(q="b", type="global", hit=True, coverage=0.7, routed="global")]
+    )
+    ok = {"recall_at_6": 0.0, "global_coverage": 0.72, "router_accuracy": 1.0}
+    low = {"recall_at_6": 0.0, "global_coverage": 0.8, "router_accuracy": 1.0}
+
+    assert gate_failures(metrics, ok) == []
+    failed = gate_failures(metrics, low)
+    assert len(failed) == 1 and failed[0].startswith("global coverage")
+    assert gate_failures(metrics, {"recall_at_6": 0.0}) == [
+        "global coverage: no baseline value",
+        "router accuracy: no baseline value",
+    ]
+
+
+def test_the_brain_set_points_at_files_that_exist() -> None:
+    names = [path.name for path in BRAIN_DOCS.glob("*.md")]
+    questions = load_golden(GOLDEN_DIR / "brain.jsonl")
+
+    assert len(names) == 40
+    assert sum(q.type == "global" for q in questions) == 15
+    assert sum(q.type == "local" for q in questions) == 15
+    for question in questions:
+        for expected in question.expected:
+            assert any(fnmatch(n, expected.partition("#")[0]) for n in names), expected

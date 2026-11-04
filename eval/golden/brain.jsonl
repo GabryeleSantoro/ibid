@@ -1,0 +1,30 @@
+{"q": "what are the main themes in my library", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "what topics do my notes cover", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "give me an overview of everything I have written", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "summarize all of my documents in a few lines", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "across all my notes, what do I care about most", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "how do my notes on cooking and gardening connect", "type": "global", "expected": ["garden-*.md", "cook-*.md"]}
+{"q": "compare what I wrote about cycling with what I wrote about money", "type": "global", "expected": ["cycle-*.md", "money-*.md"]}
+{"q": "overall, what do my notes say about the night sky", "type": "global", "expected": ["astro-*.md"]}
+{"q": "in general, what have I learned about building search systems", "type": "global", "expected": ["rag-*.md"]}
+{"q": "quali sono i temi principali della mia libreria", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "di quali argomenti parlano i miei appunti", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "fammi una panoramica di tutti i miei documenti", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "riassumi tutto quello che ho scritto", "type": "global", "expected": ["garden-*.md", "astro-*.md", "money-*.md", "cook-*.md", "cycle-*.md", "rag-*.md"]}
+{"q": "che legame c'è tra i miei appunti di cucina e quelli sull'orto", "type": "global", "expected": ["cook-*.md", "garden-*.md"]}
+{"q": "in generale cosa dicono le mie note sulle finanze personali", "type": "global", "expected": ["money-*.md"]}
+{"q": "what oven temperature does the sourdough recipe use", "type": "local", "expected": ["cook-sourdough.md"]}
+{"q": "what tyre pressure for 25 mm road tyres", "type": "local", "expected": ["cycle-tyre-pressure.md"]}
+{"q": "what does the 50/30/20 rule split my income into", "type": "local", "expected": ["money-budget-50-30-20.md"]}
+{"q": "when do the Perseids peak", "type": "local", "expected": ["astro-meteor-showers.md"]}
+{"q": "what carbon to nitrogen ratio should a compost heap have", "type": "local", "expected": ["garden-composting.md"]}
+{"q": "how many candidates does the cross-encoder rescore", "type": "local", "expected": ["rag-reranking.md"]}
+{"q": "how many months of expenses should an emergency fund cover", "type": "local", "expected": ["money-emergency-fund.md"]}
+{"q": "why does aperture matter more than magnification", "type": "local", "expected": ["astro-choosing-a-telescope.md"]}
+{"q": "how much chain stretch means it is time to replace it", "type": "local", "expected": ["cycle-chain-care.md"]}
+{"q": "quanta farina per ogni uovo nella pasta fresca", "type": "local", "expected": ["cook-pasta-fresca.md"]}
+{"q": "quando seminare i pomodori in semenzaio", "type": "local", "expected": ["garden-semina-primaverile.md"]}
+{"q": "quanto dura una seduta sui rulli in inverno", "type": "local", "expected": ["cycle-allenamento-invernale.md"]}
+{"q": "come tenere traccia delle bollette di casa", "type": "local", "expected": ["money-spese-di-casa.md"]}
+{"q": "quali metriche usare per valutare il recupero dei passaggi", "type": "local", "expected": ["rag-valutazione.md"]}
+{"q": "quali stelle si vedono nella costellazione di Orione", "type": "local", "expected": ["astro-costellazioni-invernali.md"]}

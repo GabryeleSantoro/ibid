@@ -28,6 +28,7 @@ uv run --directory core/ragcore ragcore serve --port 8765      # API only; docs 
 uv run ragcore index ./fixtures/docs --data-dir /tmp/rc        # real backend, headless; needs serve-models.sh
 uv run ragcore ask "what does reranking do" --data-dir /tmp/rc # prints answer + validated [doc_id:page] citations
 uv run ragcore eval eval/golden/base.jsonl --corpus fixtures/docs   # recall@k/MRR/nDCG in a scratch index; --gate fails below eval/golden/base.baseline.json
+uv run ragcore eval eval/golden/brain.jsonl --corpus fixtures/brain   # global coverage + router accuracy; --gate vs brain.baseline.json
 ```
 
 Bare `serve` defaults to `--backend stub` (dev runs only). The shell passes `--backend real`, and ragcore starts/restarts the embedder and reranker llama-servers itself, so the shell supervises only ragcore. `index`/`ask` always use the real backend.
@@ -56,6 +57,7 @@ Releases: pushing a `v*` tag triggers `.github/workflows/release.yml`; the versi
 
 - `backend.py` composes a `Backend` from ports (`ports.py`: store, answer engine, jobs, model hub) for the process lifetime. `config.backend` is `"stub"` (default: in-memory fixture corpus, keyword retrieval, scripted answers in `stub/`) or `"real"` (`store/lance.py` + `store/meta.py`: LanceDB vectors + SQLite metadata, embeddings via `models/embed.py`). API routes (`api/routes/`) depend only on the ports, so adapters swap without route changes.
 - `model_servers.py`: owns the embedder/reranker llama-servers (install on user request, watchdog restart every 5 s). `local_llm.py`: built-in Qwen3-1.7B answer model, started on first use, stopped after 60 s idle.
+- `brain/`: doc cards (`cards.py`, written in `RealStore._write`), numpy topic tree (`cluster.py`), `Brain` per RealStore (`topics.py`: assignment, auto recluster at 15% churn), router (`route.py`), global context (`answer.py`). `/brain/topics`, `/brain/recluster`; `QueryRequest.topic_id` scopes a global answer.
 - `watch.py`: watchdog observer; rescans a watched source 2 s after its files settle (real backend only).
 - Ingestion: `ingest/walk.py` (scan/filter) → `parse.py` (Markdown, TXT, PDF with RapidOCR for pages without a text layer, PPTX, DOCX, HTML, CSV; sets `lang` via py3langid) → `chunk.py` (page-safe overlapping windows with section context). Page numbers and chunk offsets exist to support citation validation.
 - `citations.py`: a citation not pointing at a retrieved passage is discarded — preserve this invariant when touching answer streaming.
