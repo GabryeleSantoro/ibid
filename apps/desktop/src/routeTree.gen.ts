@@ -20,6 +20,7 @@ import { Route as ShellLibraryRouteImport } from './routes/_shell.library'
 import { Route as ShellLogsRouteImport } from './routes/_shell.logs'
 import { Route as ShellModelsRouteImport } from './routes/_shell.models'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellTopicsRouteImport } from './routes/_shell.topics'
 import { Route as ShellChatIndexRouteImport } from './routes/_shell.chat.index'
 import { Route as ShellChatSessionIdRouteImport } from './routes/_shell.chat.$sessionId'
 import { Route as ShellReaderDocIdRouteImport } from './routes/_shell.reader.$docId'
@@ -80,6 +81,11 @@ const ShellSettingsRoute = ShellSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellTopicsRoute = ShellTopicsRouteImport.update({
+  id: '/topics',
+  path: '/topics',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellChatIndexRoute = ShellChatIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof ShellLogsRoute
   '/models': typeof ShellModelsRoute
   '/settings': typeof ShellSettingsRouteWithChildren
+  '/topics': typeof ShellTopicsRoute
   '/chat/$sessionId': typeof ShellChatSessionIdRoute
   '/reader/$docId': typeof ShellReaderDocIdRoute
   '/settings/$section': typeof ShellSettingsSectionRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/library': typeof ShellLibraryRoute
   '/logs': typeof ShellLogsRoute
   '/models': typeof ShellModelsRoute
+  '/topics': typeof ShellTopicsRoute
   '/': typeof ShellIndexRoute
   '/chat/$sessionId': typeof ShellChatSessionIdRoute
   '/reader/$docId': typeof ShellReaderDocIdRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/_shell/logs': typeof ShellLogsRoute
   '/_shell/models': typeof ShellModelsRoute
   '/_shell/settings': typeof ShellSettingsRouteWithChildren
+  '/_shell/topics': typeof ShellTopicsRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/chat/$sessionId': typeof ShellChatSessionIdRoute
   '/_shell/reader/$docId': typeof ShellReaderDocIdRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/models'
     | '/settings'
+    | '/topics'
     | '/chat/$sessionId'
     | '/reader/$docId'
     | '/settings/$section'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/logs'
     | '/models'
+    | '/topics'
     | '/'
     | '/chat/$sessionId'
     | '/reader/$docId'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/_shell/logs'
     | '/_shell/models'
     | '/_shell/settings'
+    | '/_shell/topics'
     | '/_shell/'
     | '/_shell/chat/$sessionId'
     | '/_shell/reader/$docId'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSettingsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/topics': {
+      id: '/_shell/topics'
+      path: '/topics'
+      fullPath: '/topics'
+      preLoaderRoute: typeof ShellTopicsRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/chat/': {
       id: '/_shell/chat/'
       path: '/'
@@ -369,6 +388,7 @@ interface ShellRouteChildren {
   ShellLogsRoute: typeof ShellLogsRoute
   ShellModelsRoute: typeof ShellModelsRoute
   ShellSettingsRoute: typeof ShellSettingsRouteWithChildren
+  ShellTopicsRoute: typeof ShellTopicsRoute
   ShellIndexRoute: typeof ShellIndexRoute
   ShellReaderDocIdRoute: typeof ShellReaderDocIdRoute
 }
@@ -382,6 +402,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellLogsRoute: ShellLogsRoute,
   ShellModelsRoute: ShellModelsRoute,
   ShellSettingsRoute: ShellSettingsRouteWithChildren,
+  ShellTopicsRoute: ShellTopicsRoute,
   ShellIndexRoute: ShellIndexRoute,
   ShellReaderDocIdRoute: ShellReaderDocIdRoute,
 }

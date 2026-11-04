@@ -55,7 +55,9 @@
     "model_role_active": "Prima attivare un altro modello per questo ruolo",
     "local_model_missing": "Il modello integrato non è installato. Installalo in Impostazioni → Connessioni.",
     "local_model_failed": "Impossibile avviare il modello integrato: {{reason}}",
-    "local_model_unsupported_for_slides": "La conversione delle slide richiede una connessione a un servizio; il modello integrato è troppo piccolo."
+    "local_model_unsupported_for_slides": "La conversione delle slide richiede una connessione a un servizio; il modello integrato è troppo piccolo.",
+    "topic_not_found": "Argomento non trovato. Potrebbe essere cambiato dopo un ricalcolo.",
+    "index_blocked": "L'indice è stato creato con un altro modello di embedding. Reindicizza per continuare."
   },
   "settings": {
     "language": {
@@ -208,7 +210,8 @@
     "theme": "Tema",
     "themeLight": "Chiaro",
     "themeDark": "Scuro",
-    "themeSystem": "Sistema"
+    "themeSystem": "Sistema",
+    "topics": "Argomenti"
   },
   "tour": {
     "skip": "Salta il tour",
@@ -491,7 +494,9 @@
       "downloading": "Download del modello per le domande… {{percent}}%",
       "failed": "Download non riuscito: {{error}}"
     },
-    "waitingModel": "In attesa del modello…"
+    "waitingModel": "In attesa del modello…",
+    "topicChip": "Argomento: {{label}}",
+    "dismissTopic": "Smetti di chiedere su questo argomento"
   },
   "documentStatus": {
     "queued": "in coda",
@@ -754,5 +759,27 @@
     "privacy": "Con OpenRouter, i passaggi recuperati vengono inviati al provider.",
     "openrouter": "Configura OpenRouter",
     "keep": "Continua a usare questo computer"
+  },
+  "topics": {
+    "title": "Argomenti",
+    "built": "Creata {{when}}",
+    "changed_one": "{{count}} documento modificato da allora",
+    "changed_other": "{{count}} documenti modificati da allora",
+    "recluster": "Ricalcola",
+    "reclustering": "Ricalcolo…",
+    "reclusterFailed": "Impossibile ricalcolare gli argomenti",
+    "documents_one": "{{count}} documento",
+    "documents_other": "{{count}} documenti",
+    "keywords": "Parole chiave",
+    "subtopics": "Sottoargomenti",
+    "docs": "Documenti",
+    "ask": "Chiedi su questo argomento",
+    "expand": "Espandi",
+    "collapse": "Comprimi",
+    "under6": "Gli argomenti compaiono quando la libreria ha almeno 6 documenti.",
+    "building": "Creazione della mappa degli argomenti…",
+    "noEmbedder": "Gli argomenti richiedono il modello di embedding attivo.",
+    "openModels": "Apri Modelli",
+    "empty": "Nessuna mappa degli argomenti. Ricalcola per crearne una."
   }
 }

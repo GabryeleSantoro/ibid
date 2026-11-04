@@ -17,13 +17,22 @@ export function UserMessage({ text }: { text: string }) {
   );
 }
 
-export function ModeBadge({ mode, reason }: { mode: "local" | "global"; reason?: string | null }) {
+export function ModeBadge({
+  mode,
+  reason,
+  scope,
+}: {
+  mode: "local" | "global";
+  reason?: string | null;
+  scope?: string | null;
+}) {
   const { t } = useTranslation();
   const Icon = mode === "global" ? GlobeIcon : LayersIcon;
   return (
     <Badge variant="outline" className="gap-1 font-normal" title={reason ?? undefined}>
       <Icon className="size-3" />
       {mode === "global" ? t("chat.modeGlobal") : t("chat.modeLocal")}
+      {scope ? <span className="max-w-48 truncate text-muted-foreground">· {scope}</span> : null}
     </Badge>
   );
 }
@@ -58,6 +67,7 @@ export function AssistantMessage({
   text,
   mode,
   modeReason,
+  modeScope,
   citations,
   chunks,
   grounding,
@@ -71,6 +81,7 @@ export function AssistantMessage({
   text: string;
   mode: "local" | "global" | null;
   modeReason?: string | null;
+  modeScope?: string | null;
   citations: Citation[];
   chunks: RetrievedChunk[];
   grounding: Grounding | null;
@@ -85,7 +96,7 @@ export function AssistantMessage({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        {mode ? <ModeBadge mode={mode} reason={modeReason} /> : null}
+        {mode ? <ModeBadge mode={mode} reason={modeReason} scope={modeScope} /> : null}
         {retrieving ? (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2Icon className="size-3 animate-spin" />

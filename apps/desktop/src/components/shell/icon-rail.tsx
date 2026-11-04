@@ -8,6 +8,7 @@ import {
   ScrollTextIcon,
   FilePenLineIcon,
   MessagesSquareIcon,
+  NetworkIcon,
   SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ type RailItem = {
 const PRIMARY: RailItem[] = [
   { to: "/chat", labelKey: "nav.chat", icon: MessagesSquareIcon, match: ["/chat", "/"] },
   { to: "/library", labelKey: "nav.library", icon: LibraryIcon, match: ["/library", "/reader"] },
+  { to: "/topics", labelKey: "nav.topics", icon: NetworkIcon, match: ["/topics"] },
   { to: "/convert", labelKey: "nav.convert", icon: FilePenLineIcon, match: ["/convert"] },
   { to: "/models", labelKey: "nav.models", icon: BoxesIcon, match: ["/models"] },
   { to: "/settings", labelKey: "nav.settings", icon: SettingsIcon, match: ["/settings"] },

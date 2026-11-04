@@ -17,6 +17,7 @@ export type PendingAnswer = {
   status: "retrieving" | "streaming" | "done" | "cancelled" | "error";
   mode: "local" | "global" | null;
   modeReason: string | null;
+  modeScope: string | null;
   chunks: RetrievedChunk[];
   candidates: number;
   text: string;
@@ -33,6 +34,7 @@ const EMPTY: Omit<PendingAnswer, "question"> = {
   status: "retrieving",
   mode: null,
   modeReason: null,
+  modeScope: null,
   chunks: [],
   candidates: 0,
   text: "",
@@ -60,7 +62,14 @@ export function useChat(sessionId: string | null) {
   const isStreaming = pending?.status === "retrieving" || pending?.status === "streaming";
 
   const send = useCallback(
-    (question: string, options: { mode?: "auto" | "local" | "global"; filters?: QueryFilters } = {}) => {
+    (
+      question: string,
+      options: {
+        mode?: "auto" | "local" | "global";
+        filters?: QueryFilters;
+        topicId?: string | null;
+      } = {},
+    ) => {
       if (isStreaming) return;
       setPending({ question, ...EMPTY });
 
@@ -70,6 +79,7 @@ export function useChat(sessionId: string | null) {
           session_id: sessionId,
           mode: options.mode ?? "auto",
           filters: options.filters ?? {},
+          topic_id: options.topicId ?? null,
         },
         {
           onEvent: (frame) => {
@@ -80,7 +90,12 @@ export function useChat(sessionId: string | null) {
                   setActiveSession(frame.data.session_id);
                   return current;
                 case "mode":
-                  return { ...current, mode: frame.data.mode, modeReason: frame.data.reason };
+                  return {
+                    ...current,
+                    mode: frame.data.mode,
+                    modeReason: frame.data.reason,
+                    modeScope: frame.data.scope ?? null,
+                  };
                 case "sources":
                   return {
                     ...current,

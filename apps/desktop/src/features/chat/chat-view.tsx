@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CloudIcon, FileTextIcon, PanelRightIcon } from "lucide-react";
+import { CloudIcon, FileTextIcon, NetworkIcon, PanelRightIcon, XIcon } from "lucide-react";
 
 import { Page, PageBody, PageHeader } from "@/components/shell/page";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +23,17 @@ import { SourcePanel } from "@/features/chat/source-panel";
 import { useChat } from "@/features/chat/use-chat";
 import type { CitationTarget } from "@/features/chat/answer-text";
 import { api, type ChatMessage, type QueryMode } from "@/lib/ipc";
-import { connectionsQuery, keys, projectsQuery, sourcesQuery } from "@/lib/queries";
+import { connectionsQuery, keys, projectsQuery, sourcesQuery, topicsQuery } from "@/lib/queries";
 
 export function ChatView({ sessionId }: { sessionId: string | null }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { topic: topicId } = useSearch({ from: "/_shell/chat" });
+  const topics = useQuery({ ...topicsQuery, enabled: Boolean(topicId) });
+  const topicLabel = topics.data?.topics.find((topic) => topic.id === topicId)?.label ?? topicId;
+  const dismissTopic = () =>
+    void navigate({ to: ".", search: (previous) => ({ ...previous, topic: undefined }) });
   const [mode, setMode] = useState<QueryMode>("auto");
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[] | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -62,7 +67,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
   // the stream is over, so the history query takes over from the live state.
   useEffect(() => {
     if (!sessionId && activeSession && pending && pending.status !== "retrieving" && pending.status !== "streaming") {
-      void navigate({ to: "/chat/$sessionId", params: { sessionId: activeSession } });
+      void navigate({ to: "/chat/$sessionId", params: { sessionId: activeSession }, search: true });
     }
   }, [activeSession, navigate, pending, sessionId]);
 
@@ -162,6 +167,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
       filters: scopeDocId
         ? { doc_ids: [scopeDocId] }
         : { doc_ids: includedDocumentIds },
+      topicId: topicId ?? null,
     });
   };
 
@@ -236,6 +242,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
                   text={pending.text}
                   mode={pending.mode}
                   modeReason={pending.modeReason}
+                  modeScope={pending.modeScope}
                   citations={pending.citations}
                   chunks={pending.chunks}
                   grounding={pending.grounding}
@@ -300,6 +307,20 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
         </PageBody>
 
         <Composer onSend={onSend} onStop={cancel} streaming={isStreaming}>
+          {topicId ? (
+            <Badge variant="secondary" className="h-7 gap-1.5 font-normal">
+              <NetworkIcon className="size-3" />
+              {t("chat.topicChip", { label: topicLabel })}
+              <button
+                type="button"
+                aria-label={t("chat.dismissTopic")}
+                onClick={dismissTopic}
+                className="-mr-1 grid size-4 place-items-center rounded-sm hover:bg-foreground/10"
+              >
+                <XIcon className="size-3" />
+              </button>
+            </Badge>
+          ) : null}
           {scopeDocId ? (
             <Badge variant="secondary" className="h-7 gap-1.5 font-normal">
               <FileTextIcon className="size-3" />

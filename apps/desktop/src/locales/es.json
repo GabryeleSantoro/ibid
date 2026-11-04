@@ -55,7 +55,9 @@
     "model_role_active": "Primero activar otro modelo para este rol",
     "local_model_missing": "El modelo integrado no está instalado. Instálalo en Ajustes → Conexiones.",
     "local_model_failed": "No se pudo iniciar el modelo integrado: {{reason}}",
-    "local_model_unsupported_for_slides": "La conversión de diapositivas requiere una conexión a un servicio; el modelo integrado es demasiado pequeño."
+    "local_model_unsupported_for_slides": "La conversión de diapositivas requiere una conexión a un servicio; el modelo integrado es demasiado pequeño.",
+    "topic_not_found": "Tema no encontrado. Puede haber cambiado tras reagrupar.",
+    "index_blocked": "El índice se creó con otro modelo de embedding. Reindexa para continuar."
   },
   "settings": {
     "language": {
@@ -208,7 +210,8 @@
     "theme": "Tema",
     "themeLight": "Claro",
     "themeDark": "Oscuro",
-    "themeSystem": "Sistema"
+    "themeSystem": "Sistema",
+    "topics": "Temas"
   },
   "tour": {
     "skip": "Saltar tour",
@@ -491,7 +494,9 @@
       "downloading": "Descargando el modelo de preguntas… {{percent}} %",
       "failed": "Descarga fallida: {{error}}"
     },
-    "waitingModel": "Esperando al modelo…"
+    "waitingModel": "Esperando al modelo…",
+    "topicChip": "Tema: {{label}}",
+    "dismissTopic": "Dejar de preguntar sobre este tema"
   },
   "documentStatus": {
     "queued": "en cola",
@@ -754,5 +759,27 @@
     "privacy": "Con OpenRouter, los pasajes recuperados se envían al proveedor.",
     "openrouter": "Configurar OpenRouter",
     "keep": "Seguir usando este ordenador"
+  },
+  "topics": {
+    "title": "Temas",
+    "built": "Creado {{when}}",
+    "changed_one": "{{count}} documento cambiado desde entonces",
+    "changed_other": "{{count}} documentos cambiados desde entonces",
+    "recluster": "Reagrupar",
+    "reclustering": "Reagrupando…",
+    "reclusterFailed": "No se pudieron reagrupar los temas",
+    "documents_one": "{{count}} documento",
+    "documents_other": "{{count}} documentos",
+    "keywords": "Palabras clave",
+    "subtopics": "Subtemas",
+    "docs": "Documentos",
+    "ask": "Preguntar sobre este tema",
+    "expand": "Expandir",
+    "collapse": "Contraer",
+    "under6": "Los temas aparecen cuando la biblioteca tiene al menos 6 documentos.",
+    "building": "Creando el mapa de temas…",
+    "noEmbedder": "Los temas necesitan el modelo de embedding en marcha.",
+    "openModels": "Abrir Modelos",
+    "empty": "Aún no hay mapa de temas. Reagrupa para crear uno."
   }
 }

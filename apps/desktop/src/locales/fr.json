@@ -55,7 +55,9 @@
     "model_role_active": "Activer d'abord un autre modèle pour ce rôle",
     "local_model_missing": "Le modèle intégré n'est pas installé. Installez-le dans Réglages → Connexions.",
     "local_model_failed": "Le modèle intégré n'a pas pu démarrer : {{reason}}",
-    "local_model_unsupported_for_slides": "La conversion de diapositives nécessite une connexion à un service ; le modèle intégré est trop petit."
+    "local_model_unsupported_for_slides": "La conversion de diapositives nécessite une connexion à un service ; le modèle intégré est trop petit.",
+    "topic_not_found": "Sujet introuvable. Il a peut-être changé après un recalcul.",
+    "index_blocked": "L'index a été créé avec un autre modèle d'embedding. Réindexez pour continuer."
   },
   "settings": {
     "language": {
@@ -208,7 +210,8 @@
     "theme": "Thème",
     "themeLight": "Clair",
     "themeDark": "Sombre",
-    "themeSystem": "Système"
+    "themeSystem": "Système",
+    "topics": "Sujets"
   },
   "tour": {
     "skip": "Passer la visite",
@@ -491,7 +494,9 @@
       "downloading": "Téléchargement du modèle de questions… {{percent}} %",
       "failed": "Échec du téléchargement : {{error}}"
     },
-    "waitingModel": "En attente du modèle…"
+    "waitingModel": "En attente du modèle…",
+    "topicChip": "Sujet : {{label}}",
+    "dismissTopic": "Ne plus cibler ce sujet"
   },
   "documentStatus": {
     "queued": "en file d'attente",
@@ -754,5 +759,27 @@
     "privacy": "Avec OpenRouter, les passages récupérés sont envoyés au fournisseur.",
     "openrouter": "Configurer OpenRouter",
     "keep": "Continuer sur cet ordinateur"
+  },
+  "topics": {
+    "title": "Sujets",
+    "built": "Créée {{when}}",
+    "changed_one": "{{count}} document modifié depuis",
+    "changed_other": "{{count}} documents modifiés depuis",
+    "recluster": "Recalculer",
+    "reclustering": "Recalcul…",
+    "reclusterFailed": "Impossible de recalculer les sujets",
+    "documents_one": "{{count}} document",
+    "documents_other": "{{count}} documents",
+    "keywords": "Mots-clés",
+    "subtopics": "Sous-sujets",
+    "docs": "Documents",
+    "ask": "Poser une question sur ce sujet",
+    "expand": "Déplier",
+    "collapse": "Replier",
+    "under6": "Les sujets apparaissent dès que la bibliothèque compte au moins 6 documents.",
+    "building": "Création de la carte des sujets…",
+    "noEmbedder": "Les sujets nécessitent le modèle d'embedding en marche.",
+    "openModels": "Ouvrir Modèles",
+    "empty": "Pas encore de carte des sujets. Recalculez pour en créer une."
   }
 }

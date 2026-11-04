@@ -55,7 +55,9 @@
     "model_role_active": "Activate another model for this role first",
     "local_model_missing": "The built-in model is not installed. Install it in Settings → Connections.",
     "local_model_failed": "The built-in model could not start: {{reason}}",
-    "local_model_unsupported_for_slides": "Slide conversion needs a service connection; the built-in model is too small for it."
+    "local_model_unsupported_for_slides": "Slide conversion needs a service connection; the built-in model is too small for it.",
+    "topic_not_found": "Topic not found. It may have changed after a re-cluster.",
+    "index_blocked": "The index was built with another embedding model. Re-index to continue."
   },
   "settings": {
     "language": {
@@ -208,7 +210,8 @@
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "System"
+    "themeSystem": "System",
+    "topics": "Topics"
   },
   "tour": {
     "skip": "Skip tour",
@@ -491,7 +494,9 @@
       "downloading": "Downloading the question model… {{percent}}%",
       "failed": "Download failed: {{error}}"
     },
-    "waitingModel": "Waiting for the model…"
+    "waitingModel": "Waiting for the model…",
+    "topicChip": "Topic: {{label}}",
+    "dismissTopic": "Stop asking about this topic"
   },
   "documentStatus": {
     "queued": "queued",
@@ -754,5 +759,27 @@
     "privacy": "With OpenRouter, the retrieved passages are sent to the provider.",
     "openrouter": "Set up OpenRouter",
     "keep": "Keep using this computer"
+  },
+  "topics": {
+    "title": "Topics",
+    "built": "Built {{when}}",
+    "changed_one": "{{count}} document changed since",
+    "changed_other": "{{count}} documents changed since",
+    "recluster": "Re-cluster",
+    "reclustering": "Re-clustering…",
+    "reclusterFailed": "Could not re-cluster",
+    "documents_one": "{{count}} document",
+    "documents_other": "{{count}} documents",
+    "keywords": "Keywords",
+    "subtopics": "Subtopics",
+    "docs": "Documents",
+    "ask": "Ask about this topic",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "under6": "Topics appear once your library has 6+ documents.",
+    "building": "Building the topic map…",
+    "noEmbedder": "Topics need the embedding model running.",
+    "openModels": "Open Models",
+    "empty": "No topic map yet. Re-cluster to build one."
   }
 }

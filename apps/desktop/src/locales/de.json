@@ -55,7 +55,9 @@
     "model_role_active": "Zuerst ein anderes Modell für diese Rolle aktivieren",
     "local_model_missing": "Das integrierte Modell ist nicht installiert. Installieren Sie es unter Einstellungen → Verbindungen.",
     "local_model_failed": "Das integrierte Modell konnte nicht gestartet werden: {{reason}}",
-    "local_model_unsupported_for_slides": "Die Foliensatz-Umwandlung benötigt eine Dienstverbindung; das integrierte Modell ist dafür zu klein."
+    "local_model_unsupported_for_slides": "Die Foliensatz-Umwandlung benötigt eine Dienstverbindung; das integrierte Modell ist dafür zu klein.",
+    "topic_not_found": "Thema nicht gefunden. Es hat sich nach einer Neugruppierung vielleicht geändert.",
+    "index_blocked": "Der Index wurde mit einem anderen Embedding-Modell erstellt. Neu indexieren, um fortzufahren."
   },
   "settings": {
     "language": {
@@ -208,7 +210,8 @@
     "theme": "Design",
     "themeLight": "Hell",
     "themeDark": "Dunkel",
-    "themeSystem": "System"
+    "themeSystem": "System",
+    "topics": "Themen"
   },
   "tour": {
     "skip": "Tour überspringen",
@@ -491,7 +494,9 @@
       "downloading": "Fragenmodell wird geladen… {{percent}} %",
       "failed": "Download fehlgeschlagen: {{error}}"
     },
-    "waitingModel": "Warte auf das Modell…"
+    "waitingModel": "Warte auf das Modell…",
+    "topicChip": "Thema: {{label}}",
+    "dismissTopic": "Nicht mehr zu diesem Thema fragen"
   },
   "documentStatus": {
     "queued": "in Warteschlange",
@@ -754,5 +759,27 @@
     "privacy": "Mit OpenRouter werden die gefundenen Passagen an den Anbieter gesendet.",
     "openrouter": "OpenRouter einrichten",
     "keep": "Auf diesem Computer bleiben"
+  },
+  "topics": {
+    "title": "Themen",
+    "built": "Erstellt {{when}}",
+    "changed_one": "{{count}} Dokument seitdem geändert",
+    "changed_other": "{{count}} Dokumente seitdem geändert",
+    "recluster": "Neu gruppieren",
+    "reclustering": "Wird neu gruppiert…",
+    "reclusterFailed": "Themen konnten nicht neu gruppiert werden",
+    "documents_one": "{{count}} Dokument",
+    "documents_other": "{{count}} Dokumente",
+    "keywords": "Schlüsselwörter",
+    "subtopics": "Unterthemen",
+    "docs": "Dokumente",
+    "ask": "Zu diesem Thema fragen",
+    "expand": "Aufklappen",
+    "collapse": "Zuklappen",
+    "under6": "Themen erscheinen, sobald die Bibliothek mindestens 6 Dokumente enthält.",
+    "building": "Themenkarte wird erstellt…",
+    "noEmbedder": "Themen brauchen das laufende Embedding-Modell.",
+    "openModels": "Modelle öffnen",
+    "empty": "Noch keine Themenkarte. Neu gruppieren, um eine zu erstellen."
   }
 }
