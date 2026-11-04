@@ -30,7 +30,7 @@ K = 6
 # The CI gate's tolerance: one question of the 20-question base set. (The roadmap's
 # "2 points" assumed a 50-question set, where one question is 2 points.)
 MAX_RECALL_DROP = 0.05
-MAX_BRAIN_DROP = 0.04  # one router question of 30; 2 points is under one question
+MAX_BRAIN_DROP = 0.05  # one question of the 20-row base set; 2 points is under one question
 # The committed sets; exists in a dev checkout only, never in the packaged sidecar.
 GOLDEN_DIR = next(
     (
@@ -209,7 +209,7 @@ def gate_failures(metrics: EvalMetrics, baseline: dict) -> list[str]:
         base = baseline.get(key)
         if base is None:
             failures.append(f"{name}: no baseline value")
-        elif value < base - tolerance:
+        elif value < round(base - tolerance, 4):  # 0.9 - 0.05 is 0.8500000000000001
             failures.append(
                 f"{name} {value:.2f} is more than {tolerance} below the baseline {base:.2f}"
             )

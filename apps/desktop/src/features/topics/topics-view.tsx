@@ -24,15 +24,11 @@ export function TopicsView() {
   const topics = useQuery(topicsQuery);
   const health = useQuery(healthQuery);
   const runtime = useQuery(runtimeQuery);
-  const documents = useQuery({
-    queryKey: keys.documents({ limit: 500 }),
-    queryFn: () => api.listDocuments({ limit: 500 }),
-  });
   const { active } = useJobs();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { roots, byId } = useMemo(() => nestTopics(topics.data?.topics ?? []), [topics.data]);
-  const titles = new Map((documents.data?.items ?? []).map((d) => [d.id, d.title]));
+  const titles = new Map(Object.entries(topics.data?.titles ?? {}));
   const selected = (selectedId ? byId.get(selectedId) : undefined) ?? roots[0] ?? null;
   const building = topics.data?.status === "building" || active.some((j) => j.kind === "recluster");
 

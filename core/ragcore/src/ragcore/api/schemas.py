@@ -311,6 +311,9 @@ class TopicTree(BaseModel):
     built_at: datetime | None = None
     changed_since: int = 0
     topics: list[Topic]
+    titles: dict[str, str] = Field(
+        default_factory=dict, description="Document titles by id, for every document indexed."
+    )
 
 
 # --------------------------------------------------------------- slide to text
@@ -530,7 +533,8 @@ class RetrievalSettings(BaseModel):
     min_score: float = 0.3
     context_token_budget: int = 4096
     history_token_budget: int = 2048
-    global_token_budget: int = 6144
+    # pack() counts words; 6144 (the spec's token figure) overflows the built-in 8k model.
+    global_token_budget: int = 4096
 
 
 class PerformanceSettings(BaseModel):

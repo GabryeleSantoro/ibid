@@ -11,6 +11,7 @@ import asyncio
 import contextlib
 import logging
 import threading
+import uuid
 from collections.abc import Iterator
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -75,6 +76,7 @@ class Brain:
             built_at=state["built_at"],
             changed_since=state["changed_since"],
             topics=[to_topic(n) for n in nodes.values()],
+            titles={d: doc.title for d, doc in self.store.documents.items()},
         )
 
     def topic(self, topic_id: str) -> Topic | None:
@@ -101,17 +103,26 @@ class Brain:
     async def start(self) -> None:
         """At startup: cards for documents indexed before cards existed, then a recluster if due."""
         self._loop = asyncio.get_running_loop()
-        built = {c.doc_id: c for c in await asyncio.to_thread(self.store.backfill_cards)}
-        if built:
-            self._apply(built, set(built), len(built))
+        built = await asyncio.to_thread(self.store.backfill_cards)
+        place = {c.doc_id for c in built} | self._unplaced()
+        if place:
+            self._apply(self.store.meta.load_cards(sorted(place)), place, len(place))
         self._kick()
 
     async def changed(self, added: list[str], removed: list[str]) -> None:
         """End of an ingest: re-place what was (re)indexed, drop what left the folder."""
         self._loop = asyncio.get_running_loop()
-        cards = self.store.meta.load_cards(added) if added else {}
-        self._apply(cards, {*added, *removed}, len(added) + len(removed))
+        place = {*added, *self._unplaced()}
+        cards = self.store.meta.load_cards(sorted(place)) if place else {}
+        self._apply(cards, place | set(removed), len(place) + len(removed))
         self._kick()
+
+    def _unplaced(self) -> set[str]:
+        """Cards no topic holds: an ingest that wrote them died before it could place them."""
+        if not self.nodes:
+            return set()
+        held = {d for n in self.nodes.values() if n.parent_id is None for d in n.doc_ids}
+        return self.store.meta.card_ids() - held
 
     def removed(self, doc_ids: list[str]) -> None:
         """From the sync remove routes, which run in a worker thread."""
@@ -198,6 +209,7 @@ class Brain:
                 np.stack([cards[i].vector for i in ids]),
                 [cards[i].terms for i in ids],
                 [cards[i].summary_chunk_ids[0] for i in ids],
+                prefix=f"t{uuid.uuid4().hex[:6]}-",  # a stale id must 404, not name another topic
             )
         state = {"built_at": datetime.now(tz=UTC).isoformat(), "changed_since": 0}
         with self._lock:

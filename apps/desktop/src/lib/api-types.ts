@@ -1344,6 +1344,10 @@ export interface components {
             latency_p95: components["schemas"]["StageLatency"];
             /** Baseline Recall At 6 */
             baseline_recall_at_6?: number | null;
+            /** Global Coverage */
+            global_coverage?: number | null;
+            /** Router Accuracy */
+            router_accuracy?: number | null;
         };
         /** EvalProgressEvent */
         EvalProgressEvent: {
@@ -1377,6 +1381,12 @@ export interface components {
              * @default 0
              */
             latency_ms: number;
+            /** Coverage */
+            coverage?: number | null;
+            /** Routed */
+            routed?: ("local" | "global") | null;
+            /** Route Reason */
+            route_reason?: string | null;
         };
         /** EvalResult */
         EvalResult: {
@@ -1891,7 +1901,7 @@ export interface components {
             history_token_budget: number;
             /**
              * Global Token Budget
-             * @default 6144
+             * @default 4096
              */
             global_token_budget: number;
         };
@@ -2168,6 +2178,13 @@ export interface components {
             changed_since: number;
             /** Topics */
             topics: components["schemas"]["Topic"][];
+            /**
+             * Titles
+             * @description Document titles by id, for every document indexed.
+             */
+            titles?: {
+                [key: string]: string;
+            };
         };
         /** ValidationError */
         ValidationError: {

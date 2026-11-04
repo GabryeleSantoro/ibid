@@ -54,7 +54,7 @@ def _candidates(brain, docs: set[str], topic_id: str | None):
                 n.centroid,
                 frozenset(n.doc_ids) & docs,
                 n.rep_chunk_ids,
-                [c.label for c in nodes.values() if c.parent_id == n.id],
+                [c.label for c in nodes.values() if c.parent_id == n.id and docs & set(c.doc_ids)],
             )
             for n in children
         ]

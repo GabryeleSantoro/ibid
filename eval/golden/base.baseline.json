@@ -13,7 +13,7 @@
       "rerank_ms": 0.0,
       "pack_ms": 0.0,
       "llm_first_token_ms": 0.0,
-      "total_ms": 16.58
+      "total_ms": 16.48
     },
     "latency_p95": {
       "embed_ms": 0.0,
@@ -22,11 +22,11 @@
       "rerank_ms": 0.0,
       "pack_ms": 0.0,
       "llm_first_token_ms": 0.0,
-      "total_ms": 26.28
+      "total_ms": 22.03
     },
     "baseline_recall_at_6": 1.0,
     "global_coverage": 1.0,
-    "router_accuracy": 0.8
+    "router_accuracy": 1.0
   },
   "questions": [
     {
@@ -35,7 +35,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 26.28,
+      "latency_ms": 22.03,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.07)"
@@ -46,7 +46,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 18.18,
+      "latency_ms": 17.31,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.06)"
@@ -57,7 +57,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 15.82,
+      "latency_ms": 17.0,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.42)"
@@ -68,7 +68,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.56,
+      "latency_ms": 16.92,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.01)"
@@ -79,7 +79,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 16.5,
+      "latency_ms": 16.48,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router -0.01)"
@@ -90,7 +90,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 15.32,
+      "latency_ms": 15.98,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.07)"
@@ -101,7 +101,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 17.55,
+      "latency_ms": 17.32,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.10)"
@@ -112,10 +112,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 16.92,
+      "latency_ms": 14.58,
       "coverage": null,
-      "routed": "global",
-      "route_reason": "Global (router 0.06)"
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.06)"
     },
     {
       "q": "send the bigger surrounding passage to the LLM but search on small ones",
@@ -123,7 +123,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 16.51,
+      "latency_ms": 16.98,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.02)"
@@ -134,7 +134,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 15.31,
+      "latency_ms": 14.46,
       "coverage": null,
       "routed": "local",
       "route_reason": "Local (router -0.06)"
@@ -145,7 +145,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 17.85,
+      "latency_ms": 15.92,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router -0.02)"
@@ -156,10 +156,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 16.24,
+      "latency_ms": 15.82,
       "coverage": null,
-      "routed": "global",
-      "route_reason": "Global (router 0.06)"
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.06)"
     },
     {
       "q": "questions about the main themes across all reports",
@@ -167,7 +167,7 @@
       "hit": true,
       "rank": null,
       "ndcg": 0.0,
-      "latency_ms": 14.96,
+      "latency_ms": 15.13,
       "coverage": 1.0,
       "routed": "global",
       "route_reason": "Global (router 0.23)"
@@ -178,7 +178,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 14.92,
+      "latency_ms": 14.82,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.04)"
@@ -189,7 +189,7 @@
       "hit": true,
       "rank": 3,
       "ndcg": 0.5,
-      "latency_ms": 16.58,
+      "latency_ms": 17.66,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.02)"
@@ -200,7 +200,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 22.4,
+      "latency_ms": 16.43,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router -0.01)"
@@ -211,7 +211,7 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 16.53,
+      "latency_ms": 14.37,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.05)"
@@ -222,10 +222,10 @@
       "hit": true,
       "rank": 3,
       "ndcg": 0.5,
-      "latency_ms": 17.05,
+      "latency_ms": 16.76,
       "coverage": null,
-      "routed": "global",
-      "route_reason": "Global (router 0.10)"
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.10)"
     },
     {
       "q": "quali metriche usare per valutare il recupero dei passaggi",
@@ -233,10 +233,10 @@
       "hit": true,
       "rank": 1,
       "ndcg": 1.0,
-      "latency_ms": 18.1,
+      "latency_ms": 17.94,
       "coverage": null,
-      "routed": "global",
-      "route_reason": "Global (router 0.12)"
+      "routed": "local",
+      "route_reason": "Answerable from individual passages (router 0.12)"
     },
     {
       "q": "come si scartano le citazioni non valide nelle risposte",
@@ -244,7 +244,7 @@
       "hit": true,
       "rank": 2,
       "ndcg": 0.6309297535714575,
-      "latency_ms": 17.99,
+      "latency_ms": 16.01,
       "coverage": null,
       "routed": "local",
       "route_reason": "Answerable from individual passages (router 0.04)"

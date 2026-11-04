@@ -13,7 +13,7 @@ from ragcore.api.routes.query import (
     retrieval_query,
     tokens_per_second,
 )
-from ragcore.api.schemas import ChatMessage, QueryFilters
+from ragcore.api.schemas import ChatMessage, QueryFilters, RetrievalSettings
 
 real = pytest.mark.parametrize("client", ["real"], indirect=True)
 
@@ -564,3 +564,10 @@ def test_the_global_prompt_carries_the_topic_outline(client, read_events, wait_f
     assert captured["system_prompt"].startswith(GLOBAL_SYSTEM_PROMPT)
     for topic in (t for t in tree.topics if t.level == 0):
         assert topic.label in captured["system_prompt"]
+
+
+def test_the_global_budget_fits_where_the_local_one_does() -> None:
+    # pack() counts words, not tokens: 6144 words of passages overflow the built-in 8k model.
+    settings = RetrievalSettings()
+
+    assert settings.global_token_budget <= settings.context_token_budget

@@ -16,6 +16,7 @@ def test_the_stub_has_no_topic_map(client: TestClient) -> None:
         "built_at": None,
         "changed_since": 0,
         "topics": [],
+        "titles": {},
     }
 
 
@@ -56,3 +57,13 @@ def test_recluster_is_refused_while_the_index_is_blocked(client: TestClient) -> 
 
     assert response.status_code == 409
     assert response.json()["code"] == "index_blocked"
+
+
+@real
+def test_the_map_names_every_document(client: TestClient, wait_for_topics) -> None:
+    wait_for_topics(client)
+
+    titles = client.get("/brain/topics").json()["titles"]
+
+    docs = client.get("/documents").json()["items"]
+    assert titles == {d["id"]: d["title"] for d in docs}

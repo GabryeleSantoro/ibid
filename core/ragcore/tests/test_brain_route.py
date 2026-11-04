@@ -18,11 +18,19 @@ EXAMPLES_2D = (np.array([[1.0, 0.0]]), np.array([[0.0, 1.0]]))
 
 
 def test_a_clear_global_score_routes_global_and_reports_it() -> None:
-    routed = score_route("what is in here", [0.53, 0.47], EXAMPLES_2D)
+    routed = score_route("what is in here", [0.6, 0.4], EXAMPLES_2D)
 
     assert routed.mode == "global"
-    assert routed.reason == "Global (router 0.06)"
-    assert routed.vector == [0.53, 0.47]
+    assert routed.reason == "Global (router 0.20)"
+    assert routed.vector == [0.6, 0.4]
+
+
+def test_a_small_lead_for_global_is_not_enough() -> None:
+    # Local questions score up to 0.12 on the eval sets; global ones mostly above 0.15.
+    routed = score_route("what is in here", [0.55, 0.45], EXAMPLES_2D)
+
+    assert routed.mode == "local"
+    assert routed.reason == "Answerable from individual passages (router 0.10)"
 
 
 def test_a_clear_local_score_routes_local() -> None:

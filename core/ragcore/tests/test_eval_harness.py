@@ -137,3 +137,20 @@ def test_the_brain_set_points_at_files_that_exist() -> None:
     for question in questions:
         for expected in question.expected:
             assert any(fnmatch(n, expected.partition("#")[0]) for n in names), expected
+
+
+def test_one_router_flip_in_twenty_rows_stays_within_the_gate() -> None:
+    def metrics(wrong: int):
+        rows = [
+            EvalQuestionResult(q=str(i), type="local", hit=True, rank=1, routed="local")
+            for i in range(20 - wrong)
+        ]
+        rows += [
+            EvalQuestionResult(q=f"w{i}", type="local", hit=True, rank=1, routed="global")
+            for i in range(wrong)
+        ]
+        return summarize("t", rows)
+
+    assert gate_failures(metrics(1), {"recall_at_6": 1.0, "router_accuracy": 1.0}) == []
+    assert gate_failures(metrics(3), {"recall_at_6": 1.0, "router_accuracy": 0.9}) == []
+    assert len(gate_failures(metrics(2), {"recall_at_6": 1.0, "router_accuracy": 1.0})) == 1

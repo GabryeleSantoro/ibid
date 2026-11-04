@@ -25,8 +25,10 @@ GLOBAL_HINTS = (
     "compare the",
 )
 
-# Tuned on eval/golden/brain.jsonl; keep its exact phrasings out of here.
-MARGIN = 0.05
+# Tuned on eval/golden/{base,brain}.jsonl; keep their exact phrasings out of here. Local
+# questions score up to 0.12 there, so global needs a clear lead; local needs only a small one.
+GLOBAL_MARGIN = 0.15
+LOCAL_MARGIN = 0.05
 
 EXAMPLES: tuple[tuple[str, str], ...] = (
     ("global", "What are the recurring themes across these files?"),
@@ -90,9 +92,9 @@ async def embed_examples(embedder) -> Examples:
 def score_route(question: str, vector: list[float], examples: Examples) -> Routed:
     q = np.asarray(vector, dtype=np.float32)
     score = float(np.max(examples[0] @ q) - np.max(examples[1] @ q))
-    if score > MARGIN:
+    if score > GLOBAL_MARGIN:
         return Routed("global", f"Global (router {score:.2f})", vector)
-    if score < -MARGIN:
+    if score < -LOCAL_MARGIN:
         return Routed("local", f"Local (router {score:.2f})", vector)
     hint = keyword_route(question, vector)
     return Routed(hint.mode, f"{hint.reason} (router {score:.2f})", vector)

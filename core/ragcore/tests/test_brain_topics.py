@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 from ragcore.api.schemas import QueryFilters, SourceCreate
 from ragcore.brain import topics as topics_module
-from ragcore.brain.cards import build_card
+from ragcore.brain.answer import _candidates
+from ragcore.brain.cards import build_card, terms_of
+from ragcore.brain.cluster import Node
 from ragcore.config import Config
 from ragcore.models.embed import EMBED_DIM
 from ragcore.models.fakes import FakeEmbedClient
@@ -367,3 +370,67 @@ async def test_a_blocked_index_has_no_global_context(tmp_path: Path) -> None:
     store.index_blocked = "another embedder"
 
     assert await global_context(store, await question_vector(store)) is None
+
+
+# ------------------------------------------------------------- review fixes
+
+
+def test_card_terms_skip_function_words() -> None:
+    terms = terms_of(["Check your tyres before you ride; do not skip them, each one matters."])
+
+    assert set(terms) == {"check", "tyres", "before", "ride", "skip", "matters"}
+
+
+async def late_card(store: RealStore):
+    [vector] = await store.embedder.embed(["late arrival words"])
+    return build_card("doc_late", ["doc_late:1:0"], ["late arrival words"], [vector])
+
+
+def held(store: RealStore) -> set[str]:
+    return {d for t in store.brain.tree().topics if t.level == 0 for d in t.doc_ids}
+
+
+async def test_a_card_an_interrupted_ingest_left_unplaced_joins_at_start(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    store.meta.save_cards([await late_card(store)])  # written, then the app quit before placing it
+    store.close()
+    reopened = build(tmp_path)
+
+    await reopened.brain.start()
+
+    assert "doc_late" in held(reopened)
+
+
+async def test_the_next_ingest_places_a_card_a_failed_one_left(tmp_path: Path) -> None:
+    store, source = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    store.meta.save_cards([await late_card(store)])  # an ingest that raised before changed()
+    (tmp_path / "library" / "fresh.md").write_text("# Fresh\n\nviolin chord melody tomato.\n")
+
+    await store.ingest_source_async(source.id)
+
+    assert "doc_late" in held(store)
+
+
+async def test_a_recluster_retires_the_previous_topic_ids(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    before = set(store.brain.nodes)
+
+    await store.brain.recluster()
+
+    assert before and not before & set(store.brain.nodes)
+
+
+def test_the_outline_names_only_subtopics_in_scope() -> None:
+    def node(node_id: str, parent: str | None, docs: list[str]) -> Node:
+        level = 0 if parent is None else 1
+        return Node(node_id, parent, level, np.ones(2, dtype=np.float32), docs, [], f"L {node_id}")
+
+    tree = [node("t1", None, ["a", "b"]), node("t1.1", "t1", ["a"]), node("t1.2", "t1", ["b"])]
+    brain = SimpleNamespace(nodes={n.id: n for n in tree}, store=None)
+
+    _, [candidate] = _candidates(brain, {"a"}, None)
+
+    assert candidate.sublabels == ["L t1.1"]

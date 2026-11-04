@@ -132,6 +132,7 @@ def build_tree(
     first_chunks: list[str],
     *,
     seed: int = SEED,
+    prefix: str = "t",
 ) -> list[Node]:
     """The whole tree, parents before their children, siblings largest first."""
     rng = np.random.default_rng(seed)
@@ -155,7 +156,7 @@ def build_tree(
             centroid = _unit(x[group].sum(axis=0))
             closest = group[np.argsort(-(x[group] @ centroid), kind="stable")[:REPRESENTATIVES]]
             node = Node(
-                id=f"{parent.id}.{number}" if parent else f"t{number}",
+                id=f"{parent.id}.{number}" if parent else f"{prefix}{number}",
                 parent_id=parent.id if parent else None,
                 level=level,
                 centroid=centroid,
