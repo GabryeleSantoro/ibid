@@ -61,6 +61,8 @@ export type ChatProjectPatch = Schemas["ChatProjectPatch"];
 export type SlideConversionRequest = Schemas["SlideConversionRequest"];
 export type ConversionSavedEvent = Schemas["ConversionSavedEvent"];
 export type ConversionDoneEvent = Schemas["ConversionDoneEvent"];
+export type Topic = Schemas["Topic"];
+export type TopicTree = Schemas["TopicTree"];
 
 /**
  * Literal unions live inline in the OpenAPI schema rather than as named
@@ -263,6 +265,8 @@ export const api = {
     }),
 
   evalSets: () => request<EvalSet[]>("GET", "/eval/sets"),
+  getTopics: () => request<TopicTree>("GET", "/brain/topics"),
+  recluster: () => request<Job>("POST", "/brain/recluster"),
 };
 
 /** Shell-side facts, none of which come from the sidecar. */

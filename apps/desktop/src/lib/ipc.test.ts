@@ -29,6 +29,18 @@ beforeEach(() => {
 });
 
 describe("request building", () => {
+  it("reads the topic map and asks for a recluster", async () => {
+    await api.getTopics();
+    await api.recluster();
+
+    expect(invoke).toHaveBeenNthCalledWith(1, "api_request", {
+      req: { method: "GET", path: "/brain/topics", body: null },
+    });
+    expect(invoke).toHaveBeenNthCalledWith(2, "api_request", {
+      req: { method: "POST", path: "/brain/recluster", body: null },
+    });
+  });
+
   it("sends method, path and body as one api_request", async () => {
     invoke.mockResolvedValue({ ok: true });
 

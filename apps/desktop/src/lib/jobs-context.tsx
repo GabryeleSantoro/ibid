@@ -73,6 +73,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
         void queryClient.invalidateQueries({ queryKey: ["documents"] });
         void queryClient.invalidateQueries({ queryKey: keys.sources });
         void queryClient.invalidateQueries({ queryKey: keys.health });
+        void queryClient.invalidateQueries({ queryKey: keys.topics });
       }
     });
 

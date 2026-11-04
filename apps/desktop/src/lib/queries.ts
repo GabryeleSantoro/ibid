@@ -11,6 +11,7 @@ import { api, shell } from "./ipc";
 
 export const keys = {
   health: ["health"] as const,
+  topics: ["topics"] as const,
   hardware: ["hardware"] as const,
   sidecars: ["sidecars"] as const,
   logs: ["sidecar-logs"] as const,
@@ -103,4 +104,10 @@ export const runtimeQuery = queryOptions({
 export const modelsQuery = queryOptions({
   queryKey: keys.models,
   queryFn: api.models,
+});
+
+export const topicsQuery = queryOptions({
+  queryKey: keys.topics,
+  queryFn: api.getTopics,
+  refetchInterval: (query) => (query.state.data?.status === "building" ? 1500 : false),
 });

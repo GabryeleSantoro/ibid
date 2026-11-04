@@ -478,6 +478,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/models/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runtime Status */
+        get: operations["runtime_status_models_runtime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/runtime/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Runtime Install */
+        post: operations["runtime_install_models_runtime_install_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/models/hardware": {
         parameters: {
             query?: never;
@@ -757,6 +791,43 @@ export interface paths {
         put?: never;
         /** Suggest */
         post: operations["suggest_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/brain/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Topics */
+        get: operations["topics_brain_topics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/brain/recluster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recluster
+         * @description The same rebuild the brain schedules itself, as a Job so the jobs stream shows it.
+         */
+        post: operations["recluster_brain_recluster_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1758,6 +1829,11 @@ export interface components {
              * @description Language the answer is written in. None: the model's own choice.
              */
             lang?: ("en" | "it" | "fr" | "de" | "es") | null;
+            /**
+             * Topic Id
+             * @description Ask about one topic of the map: global mode, its subtree only.
+             */
+            topic_id?: string | null;
         };
         /** ReindexRequest */
         ReindexRequest: {
@@ -1813,6 +1889,11 @@ export interface components {
              * @default 2048
              */
             history_token_budget: number;
+            /**
+             * Global Token Budget
+             * @default 6144
+             */
+            global_token_budget: number;
         };
         /** RetrievedChunk */
         RetrievedChunk: {
@@ -1844,6 +1925,15 @@ export interface components {
              * @default 0
              */
             rerank_score: number;
+        };
+        /** RuntimeStatus */
+        RuntimeStatus: {
+            /** State */
+            state: string;
+            /** Progress */
+            progress: number;
+            /** Error */
+            error?: string | null;
         };
         /**
          * SlideConversionRequest
@@ -2038,6 +2128,46 @@ export interface components {
         TokenEvent: {
             /** Text */
             text: string;
+        };
+        /** Topic */
+        Topic: {
+            /** Id */
+            id: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Level */
+            level: number;
+            /** Label */
+            label: string;
+            /** Keywords */
+            keywords: string[];
+            /**
+             * Doc Ids
+             * @description Every document in this topic's subtree.
+             */
+            doc_ids: string[];
+            /** Rep Chunk Ids */
+            rep_chunk_ids: string[];
+        };
+        /**
+         * TopicTree
+         * @description The topic map, flat; parents come before their children.
+         */
+        TopicTree: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "none" | "building" | "ready";
+            /** Built At */
+            built_at?: string | null;
+            /**
+             * Changed Since
+             * @default 0
+             */
+            changed_since: number;
+            /** Topics */
+            topics: components["schemas"]["Topic"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -3129,6 +3259,46 @@ export interface operations {
             };
         };
     };
+    runtime_status_models_runtime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeStatus"];
+                };
+            };
+        };
+    };
+    runtime_install_models_runtime_install_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeStatus"];
+                };
+            };
+        };
+    };
     hardware_models_hardware_get: {
         parameters: {
             query?: never;
@@ -3706,6 +3876,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    topics_brain_topics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicTree"];
+                };
+            };
+        };
+    };
+    recluster_brain_recluster_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
                 };
             };
         };
