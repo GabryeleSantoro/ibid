@@ -205,6 +205,9 @@ class QueryRequest(BaseModel):
     lang: Literal["en", "it", "fr", "de", "es"] | None = Field(
         default=None, description="Language the answer is written in. None: the model's own choice."
     )
+    topic_id: str | None = Field(
+        default=None, description="Ask about one topic of the map: global mode, its subtree only."
+    )
 
 
 class RetrievedChunk(BaseModel):
@@ -527,6 +530,7 @@ class RetrievalSettings(BaseModel):
     min_score: float = 0.3
     context_token_budget: int = 4096
     history_token_budget: int = 2048
+    global_token_budget: int = 6144
 
 
 class PerformanceSettings(BaseModel):

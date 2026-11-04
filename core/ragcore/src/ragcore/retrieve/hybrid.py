@@ -29,7 +29,7 @@ def rrf(ranked: list[list[str]], k: int) -> dict[str, float]:
     return fused
 
 
-def _to_chunk(
+def to_chunk(
     row: ChunkRow, *, dense_rank: int | None, bm25_rank: int | None, score: float
 ) -> RetrievedChunk:
     return RetrievedChunk(
@@ -88,7 +88,7 @@ class HybridRetriever:
         dense_rank = {cid: rank for rank, cid in enumerate(dense, start=1)}
         bm25_rank = {cid: rank for rank, cid in enumerate(bm25, start=1)}
         scored = [
-            _to_chunk(
+            to_chunk(
                 row,
                 dense_rank=dense_rank.get(row["chunk_id"]),
                 bm25_rank=bm25_rank.get(row["chunk_id"]),

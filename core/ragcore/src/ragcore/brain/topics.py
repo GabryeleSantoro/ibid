@@ -19,6 +19,7 @@ import httpx
 import numpy as np
 
 from ragcore.api.schemas import Topic, TopicTree
+from ragcore.brain import answer
 from ragcore.brain.cards import DocCard
 from ragcore.brain.cluster import Node, build_tree
 from ragcore.brain.route import Examples, Routed, embed_examples, keyword_route, score_route
@@ -91,6 +92,9 @@ class Brain:
             logger.warning("router could not embed, routing by keywords: %s", exc)
             return keyword_route(question)
         return score_route(question, vector, self._examples)
+
+    async def for_query(self, vector: list[float] | None, **kwargs) -> answer.GlobalContext | None:
+        return await answer.for_query(self, vector, **kwargs)
 
     # ----------------------------------------------------------------- changes
 

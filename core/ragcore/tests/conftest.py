@@ -7,6 +7,7 @@ middleware is part of the contract the Rust shell depends on.
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
@@ -111,3 +112,18 @@ def _text_pdf(*pages: str) -> bytes:
         )
     )
     return bytes(pdf)
+
+
+@pytest.fixture
+def wait_for_topics() -> Callable:
+    """Block until the app's brain has a tree; the ingest in ``client`` scheduled it."""
+
+    def wait(client: TestClient):
+        brain = client.app.state.store.brain
+        deadline = time.monotonic() + 15
+        while (tree := brain.tree()).status != "ready":
+            assert time.monotonic() < deadline, tree
+            time.sleep(0.02)
+        return tree
+
+    return wait

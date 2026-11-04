@@ -32,6 +32,7 @@ from ragcore.api.schemas import (
 )
 
 if TYPE_CHECKING:
+    from ragcore.brain.answer import GlobalContext
     from ragcore.brain.route import Routed
 
 
@@ -60,6 +61,17 @@ class BrainPort(Protocol):
     async def start(self) -> None: ...
     async def recluster(self) -> None: ...
     async def route(self, question: str) -> Routed: ...
+    async def for_query(
+        self,
+        vector: list[float] | None,
+        *,
+        search: str,
+        question: str,
+        filters: QueryFilters,
+        doc_meta: dict[str, dict],
+        topic_id: str | None,
+        budget: int,
+    ) -> GlobalContext | None: ...
 
 
 @runtime_checkable

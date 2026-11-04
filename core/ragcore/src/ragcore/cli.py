@@ -104,6 +104,7 @@ async def _index(args: argparse.Namespace) -> int:
         if source is None:
             source = store.add_source(SourceCreate(path=path))
         documents = await store.ingest_source_async(source.id)
+        await store.brain.settle()  # ask finds the tree the ingest scheduled
     except httpx.HTTPError as exc:
         print(f"error: embedder at {args.embed_url} failed: {exc}", file=sys.stderr)
         return 1
@@ -132,10 +133,28 @@ async def _ask(args: argparse.Namespace) -> int:
         settings = store.settings.retrieval
         if args.top_k:
             settings = settings.model_copy(update={"top_k": args.top_k})
-        chunks, _, _ = await store.retriever.asearch(
-            args.question, settings=settings, filters=QueryFilters(), doc_meta=store.doc_meta()
+        from ragcore.api.routes.query import retrieve
+
+        found = await retrieve(
+            store,
+            args.question,
+            mode="auto",
+            topic_id=None,
+            filters=QueryFilters(),
+            history=[],
+            settings=settings,
+            lang=None,
         )
-        answer = "".join([p async for p in backend.answerer.stream(args.question, chunks, set())])
+        chunks = found.chunks
+        print(f"[{found.mode}] {found.reason}", file=sys.stderr)
+        answer = "".join(
+            [
+                p
+                async for p in backend.answerer.stream(
+                    args.question, chunks, set(), system_prompt=found.system_prompt
+                )
+            ]
+        )
     except (httpx.HTTPError, LlmError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

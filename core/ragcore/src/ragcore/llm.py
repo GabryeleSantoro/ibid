@@ -23,6 +23,18 @@ Cite every claim with a marker of the form [document_id:page] taken from the
 passage headers. If the passages do not contain the answer, say so plainly and
 cite nothing. Do not invent document ids."""
 
+GLOBAL_SYSTEM_PROMPT = """You answer questions about a whole library of documents, using only
+the passages provided. The passages were picked a few per topic so that every topic listed
+below is represented. Synthesise across the topics rather than summarising one passage, and
+say plainly where the passages leave a topic thin. Cite every claim with a marker of the form
+[document_id:page] taken from the passage headers. If the passages do not contain the answer,
+say so plainly and cite nothing. Do not invent document ids."""
+
+
+def global_prompt(outline: str) -> str:
+    return f"{GLOBAL_SYSTEM_PROMPT}\n\nTopics in the library:\n{outline}"
+
+
 # Earlier turns of the chat as (role, text), oldest first; role is "user" or "assistant".
 History = Sequence[tuple[str, str]]
 
@@ -37,13 +49,13 @@ def _messages(history: History, user: str) -> list[dict]:
 LANGUAGE_NAMES = {"it": "Italian", "fr": "French", "de": "German", "es": "Spanish"}
 
 
-def system_prompt_for(lang: str | None, extra: str = "") -> str:
+def system_prompt_for(lang: str | None, extra: str = "", base: str = SYSTEM_PROMPT) -> str:
     """The answer prompt, told to write in the UI language, plus the user's own notes.
 
     The user's text goes last and after the grounding rules, which are not editable.
     English with no notes adds nothing.
     """
-    prompt = SYSTEM_PROMPT
+    prompt = base
     name = LANGUAGE_NAMES.get(lang or "")
     if name is not None:
         prompt = (

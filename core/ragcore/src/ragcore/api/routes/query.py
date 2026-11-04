@@ -13,11 +13,14 @@ import logging
 import time
 import uuid
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Request
 
 from ragcore.api.deps import AnswererDep, StoreDep
+from ragcore.api.errors import api_error
 from ragcore.api.schemas import (
     ChatMessage,
     CitationsEvent,
@@ -26,14 +29,18 @@ from ragcore.api.schemas import (
     ModeEvent,
     Ok,
     QueryFilters,
+    QueryMode,
     QueryRequest,
+    RetrievalSettings,
+    RetrievedChunk,
     SourcesEvent,
+    StageLatency,
     StartEvent,
     TokenEvent,
 )
 from ragcore.api.sse import frame, sse_response
 from ragcore.citations import extract_citations, parse_directives
-from ragcore.llm import LlmError, system_prompt_for
+from ragcore.llm import LlmError, global_prompt, system_prompt_for
 
 router = APIRouter(tags=["query"])
 
@@ -121,8 +128,71 @@ def retrieval_query(question: str, history: list[tuple[str, str]]) -> str:
     return f"{previous}\n{question}" if previous else question
 
 
+@dataclass(slots=True)
+class Retrieval:
+    mode: Literal["local", "global"]
+    reason: str
+    scope: str | None
+    chunks: list[RetrievedChunk]
+    latency: StageLatency
+    candidates: int
+    system_prompt: str
+
+
+async def retrieve(
+    store,
+    question: str,
+    *,
+    mode: QueryMode,
+    topic_id: str | None,
+    filters: QueryFilters,
+    history: list[tuple[str, str]],
+    settings: RetrievalSettings,
+    lang: str | None,
+) -> Retrieval:
+    """Route, then gather passages: a few per topic when global, by search when local."""
+    routed = await store.brain.route(question)
+    chosen, reason = routed.mode, routed.reason
+    if topic_id is not None:
+        chosen, reason = "global", "Asked about one topic"
+    elif mode != "auto":
+        chosen, reason = mode, "Set manually"
+    extra = store.settings.chat_extra_instructions
+    search = retrieval_query(question, history)
+    if chosen == "global":
+        started = time.perf_counter()
+        context = await store.brain.for_query(
+            routed.vector,
+            search=search,
+            question=question,
+            filters=filters,
+            doc_meta=store.doc_meta(),
+            topic_id=topic_id,
+            budget=settings.global_token_budget,
+        )
+        if context is not None:
+            return Retrieval(
+                "global",
+                reason,
+                context.scope_label,
+                context.chunks,
+                StageLatency(dense_ms=(time.perf_counter() - started) * 1000),
+                context.candidates,
+                system_prompt_for(lang, extra, base=global_prompt(context.outline)),
+            )
+        chosen, reason = "local", "No topic map yet"
+    chunks, latency, candidates = await store.retriever.asearch(
+        search, settings=settings, filters=filters, doc_meta=store.doc_meta()
+    )
+    return Retrieval(
+        chosen, reason, None, chunks, latency, candidates, system_prompt_for(lang, extra)
+    )
+
+
 @router.post("/query")
 async def query(payload: QueryRequest, request: Request, store: StoreDep, answerer: AnswererDep):
+    if payload.topic_id is not None and store.brain.topic(payload.topic_id) is None:
+        raise api_error(404, "topic_not_found", "topic not found")
     query_id = payload.query_id or f"q_{uuid.uuid4().hex[:10]}"
     question, directives = parse_directives(payload.q)
 
@@ -134,25 +204,25 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
         started = time.perf_counter()
         yield frame("start", StartEvent(query_id=query_id, session_id=session_id))
 
-        routed = await store.brain.route(question)
-        mode, reason = routed.mode, routed.reason
-        if payload.mode != "auto":
-            mode, reason = payload.mode, "Set manually"
-        yield frame("mode", ModeEvent(mode=mode, reason=reason))
-
         filters = project_filters(store, session_id, payload.filters)
         history = chat_history(
             store.messages.get(session_id, []), store.settings.retrieval.history_token_budget
         )
-        chunks, latency, candidates = await store.retriever.asearch(
-            retrieval_query(question, history),
-            settings=store.settings.retrieval,
+        found = await retrieve(
+            store,
+            question,
+            mode=payload.mode,
+            topic_id=payload.topic_id,
             filters=filters,
-            doc_meta=store.doc_meta(),
+            history=history,
+            settings=store.settings.retrieval,
+            lang=payload.lang,
         )
+        chunks, latency = found.chunks, found.latency
+        yield frame("mode", ModeEvent(mode=found.mode, reason=found.reason, scope=found.scope))
         yield frame(
             "sources",
-            SourcesEvent(chunks=chunks, candidates=candidates, kept=len(chunks)),
+            SourcesEvent(chunks=chunks, candidates=found.candidates, kept=len(chunks)),
         )
 
         store.append_message(
@@ -167,11 +237,7 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
 
         connection = store.active_connection()
         stream = answerer.stream(
-            question,
-            chunks,
-            directives,
-            system_prompt=system_prompt_for(payload.lang, store.settings.chat_extra_instructions),
-            history=history,
+            question, chunks, directives, system_prompt=found.system_prompt, history=history
         )
 
         answer: list[str] = []
@@ -223,7 +289,7 @@ async def query(payload: QueryRequest, request: Request, store: StoreDep, answer
             session_id=session_id,
             role="assistant",
             text=text,
-            mode=mode,
+            mode=found.mode,
             citations=citations,
             chunks=chunks,
             grounding=grounding,

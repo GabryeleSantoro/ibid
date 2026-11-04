@@ -23,3 +23,6 @@ class NullBrain:
 
     async def route(self, question: str) -> Routed:
         return keyword_route(question)
+
+    async def for_query(self, vector, **kwargs) -> None:
+        return None

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from ragcore.api.routes.query import (
     chat_history,
@@ -14,16 +15,18 @@ from ragcore.api.routes.query import (
 )
 from ragcore.api.schemas import ChatMessage, QueryFilters
 
+real = pytest.mark.parametrize("client", ["real"], indirect=True)
+
 # ----------------------------------------------------------------- mode router
 
 
 def test_the_route_reports_a_manual_mode_as_manual(client: TestClient, read_events) -> None:
     with client.stream(
-        "POST", "/query", json={"q": "How does reranking work?", "mode": "global"}
+        "POST", "/query", json={"q": "How does reranking work?", "mode": "local"}
     ) as response:
         mode = dict(read_events(response))["mode"]
 
-    assert mode["mode"] == "global"
+    assert mode["mode"] == "local"
     assert mode["reason"] == "Set manually"
 
 
@@ -31,7 +34,6 @@ def test_auto_is_the_default_mode(client: TestClient, read_events) -> None:
     with client.stream("POST", "/query", json={"q": "main themes across the notes"}) as response:
         mode = dict(read_events(response))["mode"]
 
-    assert mode["mode"] == "global"
     assert mode["reason"] != "Set manually"
 
 
@@ -449,3 +451,116 @@ def test_a_follow_up_in_the_same_chat_carries_the_earlier_turn(
         [("user", "How does reranking work?"), ("assistant", "Answer.")],
     ]
     assert searched == ["How does reranking work?", "How does reranking work?\nAnd on a laptop?"]
+
+
+# ----------------------------------------------------------------- global mode
+
+
+def ask(client: TestClient, read_events, **body) -> dict:
+    with client.stream("POST", "/query", json={"q": "What is in here?"} | body) as response:
+        return read_events(response)
+
+
+def test_without_cards_a_global_question_runs_locally(client: TestClient, read_events) -> None:
+    mode = dict(ask(client, read_events, mode="global"))["mode"]
+
+    assert mode == {"mode": "local", "reason": "No topic map yet", "scope": None}
+
+
+def test_an_unknown_topic_is_a_404_before_the_stream(client: TestClient) -> None:
+    before = len(client.get("/chats").json())
+
+    response = client.post("/query", json={"q": "x", "topic_id": "t404"})
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "topic_not_found"
+    assert len(client.get("/chats").json()) == before
+
+
+@real
+def test_a_global_answer_keeps_the_frame_order(client, read_events, wait_for_topics) -> None:
+    wait_for_topics(client)
+
+    events = ask(client, read_events, mode="global")
+
+    names = [name for name, _ in events]
+    assert names[:3] == ["start", "mode", "sources"]
+    assert names[-2:] == ["citations", "done"]
+    assert set(names[3:-2]) <= {"token"}
+    assert dict(events)["mode"]["mode"] == "global"
+
+
+@real
+def test_global_sources_span_several_topics(client, read_events, wait_for_topics) -> None:
+    tree = wait_for_topics(client)
+    owner = {d: t.id for t in tree.topics if t.level == 0 for d in t.doc_ids}
+
+    chunks = dict(ask(client, read_events, mode="global"))["sources"]["chunks"]
+
+    assert len({owner[c["doc_id"]] for c in chunks}) >= 2
+
+
+@real
+def test_global_citations_are_checked_against_the_packed_passages(
+    client, read_events, wait_for_topics
+) -> None:
+    from ragcore.api import deps
+
+    wait_for_topics(client)
+
+    class Cites:
+        async def stream(
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
+        ):
+            yield f"Real [{chunks[0].doc_id}:{chunks[0].page_start}] and made up [doc_nope:1]."
+
+    client.app.dependency_overrides[deps.get_answerer] = Cites
+    try:
+        events = dict(ask(client, read_events, mode="global"))
+    finally:
+        client.app.dependency_overrides.pop(deps.get_answerer, None)
+
+    first = events["sources"]["chunks"][0]
+    assert [c["doc_id"] for c in events["citations"]["citations"]] == [first["doc_id"]]
+    assert events["citations"]["dropped"] == 1
+
+
+@real
+def test_a_topic_id_restricts_passages_to_its_subtree(client, read_events, wait_for_topics) -> None:
+    topic = next(t for t in wait_for_topics(client).topics if t.level == 0)
+
+    events = dict(ask(client, read_events, topic_id=topic.id))
+
+    assert events["mode"] == {
+        "mode": "global",
+        "reason": "Asked about one topic",
+        "scope": topic.label,
+    }
+    assert events["sources"]["chunks"]
+    assert {c["doc_id"] for c in events["sources"]["chunks"]} <= set(topic.doc_ids)
+
+
+@real
+def test_the_global_prompt_carries_the_topic_outline(client, read_events, wait_for_topics) -> None:
+    from ragcore.api import deps
+    from ragcore.llm import GLOBAL_SYSTEM_PROMPT
+
+    tree = wait_for_topics(client)
+    captured: dict = {}
+
+    class Recorder:
+        async def stream(
+            self, question, chunks, directives, *, system_prompt=None, max_tokens=None, history=()
+        ):
+            captured["system_prompt"] = system_prompt
+            yield "ok"
+
+    client.app.dependency_overrides[deps.get_answerer] = Recorder
+    try:
+        ask(client, read_events, mode="global")
+    finally:
+        client.app.dependency_overrides.pop(deps.get_answerer, None)
+
+    assert captured["system_prompt"].startswith(GLOBAL_SYSTEM_PROMPT)
+    for topic in (t for t in tree.topics if t.level == 0):
+        assert topic.label in captured["system_prompt"]

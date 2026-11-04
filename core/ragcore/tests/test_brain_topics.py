@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from ragcore.api.schemas import SourceCreate
+from ragcore.api.schemas import QueryFilters, SourceCreate
 from ragcore.brain import topics as topics_module
 from ragcore.brain.cards import build_card
 from ragcore.config import Config
@@ -291,3 +291,79 @@ async def test_start_backfills_and_builds_a_tree(tmp_path: Path) -> None:
 
     assert reopened.meta.card_ids() == set(reopened.documents)
     assert reopened.brain.tree().status == "ready"
+
+
+# ----------------------------------------------------------- global context
+
+
+async def global_context(store: RealStore, vector, **overrides):
+    args = {
+        "search": "what is here",
+        "question": "what is here",
+        "filters": QueryFilters(),
+        "doc_meta": store.doc_meta(),
+        "topic_id": None,
+        "budget": 6144,
+    }
+    return await store.brain.for_query(vector, **(args | overrides))
+
+
+async def question_vector(store: RealStore) -> list[float]:
+    [vector] = await store.embedder.embed(["what is here"], query=True)
+    return vector
+
+
+async def test_a_small_library_answers_global_from_cards(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 3)
+
+    context = await global_context(store, await question_vector(store))
+
+    assert store.brain.tree().status == "none"
+    assert context is not None and context.n_topics == 3
+    assert {c.doc_id for c in context.chunks} == set(store.documents)
+    assert len(context.outline.splitlines()) == 3
+
+
+async def test_global_context_respects_the_document_filter(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    keep = sorted(store.documents)[:2]
+
+    context = await global_context(
+        store, await question_vector(store), filters=QueryFilters(doc_ids=keep)
+    )
+
+    assert context is not None and context.chunks
+    assert {c.doc_id for c in context.chunks} <= set(keep)
+
+
+async def test_global_context_without_a_vector_uses_representatives(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    top = [n for n in store.brain.nodes.values() if n.parent_id is None]
+
+    context = await global_context(store, None)
+
+    assert context is not None and context.n_topics == len(top)
+    assert len(context.chunks) == len(top)  # one representative each, no dense hits
+    assert {c.chunk_id for c in context.chunks} <= {cid for n in top for cid in n.rep_chunk_ids}
+
+
+async def test_global_passages_interleave_across_topics(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 8)
+    await store.brain.settle()
+    top = [n for n in store.brain.nodes.values() if n.parent_id is None]
+    owner = {d: n.id for n in top for d in n.doc_ids}
+
+    context = await global_context(store, await question_vector(store))
+
+    first_round = [owner[c.doc_id] for c in context.chunks[: len(top)]]
+    assert len(set(first_round)) == len(top)
+    assert all(len(c.text.split()) for c in context.chunks)
+
+
+async def test_a_blocked_index_has_no_global_context(tmp_path: Path) -> None:
+    store, _ = await ingested(tmp_path, 3)
+    store.index_blocked = "another embedder"
+
+    assert await global_context(store, await question_vector(store)) is None
