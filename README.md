@@ -25,9 +25,43 @@ Point Ibid at folders of documents, then ask questions in plain language. It fin
 
 Supported formats: **PDF**, **PowerPoint (PPTX)**, **Markdown** and **plain text**.
 
+## How it works
+
+A typical session: you add a folder once, then ask as many questions as you like.
+
+```mermaid
+flowchart LR
+    subgraph index["1 · Indexing, once per folder"]
+        direction TB
+        folder["Your folder<br/>PDF · PPTX · MD · TXT"] --> read["Read the text<br/>OCR for scanned pages"]
+        read --> split["Split into passages<br/>page numbers kept"]
+        split --> embed["Embedder turns<br/>passages into vectors"]
+        embed --> store[("Local index<br/>~/.ibid")]
+    end
+
+    subgraph ask["2 · Asking a question"]
+        direction TB
+        q(["Your question"]) --> search["Search the local index<br/>by meaning and by keyword"]
+        search --> rerank["Reranker re-orders<br/>the best candidates"]
+        rerank --> enough{"Any passage above<br/>the minimum score?"}
+        enough -- no --> notfound(["Not found: Ibid says so<br/>instead of guessing"])
+        enough -- yes --> write["Answer model writes<br/>from those passages"]
+        write --> check["Citations checked<br/>unbacked ones dropped"]
+        check --> answer(["Answer streamed with<br/>page citations"])
+        answer -. click a citation .-> reader["Reader opens the page<br/>passage highlighted"]
+    end
+
+    index ==> ask
+
+    classDef model stroke:#f5a524,stroke-width:3px
+    class write model
+```
+
+Every step runs on your Mac except the one outlined in orange: the question and the selected passages go to the answer model you connected, which can be local too.
+
 ## Contents
 
-[Installation](#installation) · [System requirements](#system-requirements) · [First launch](#first-launch) · [Using Ibid](#using-ibid) · [Privacy in practice](#privacy-in-practice) · [FAQ](#faq) · [Issues and feedback](#issues-and-feedback)
+[Installation](#installation) · [How it works](#how-it-works) · [System requirements](#system-requirements) · [First launch](#first-launch) · [Using Ibid](#using-ibid) · [Privacy in practice](#privacy-in-practice) · [FAQ](#faq) · [Issues and feedback](#issues-and-feedback)
 
 ## Installation
 
