@@ -27,6 +27,8 @@ from ragcore.api.schemas import (
     Source,
     SourceCreate,
     StageLatency,
+    Topic,
+    TopicTree,
 )
 
 
@@ -45,6 +47,18 @@ class RetrieverPort(Protocol):
 
 
 @runtime_checkable
+class BrainPort(Protocol):
+    """The topic map: ``brain.topics.Brain`` (real backend) or ``brain.null.NullBrain`` (stub)."""
+
+    building: bool
+
+    def tree(self) -> TopicTree: ...
+    def topic(self, topic_id: str) -> Topic | None: ...
+    async def start(self) -> None: ...
+    async def recluster(self) -> None: ...
+
+
+@runtime_checkable
 class StorePort(Protocol):
     settings: AppSettings
     sources: dict[str, Source]
@@ -58,6 +72,7 @@ class StorePort(Protocol):
     projects: dict[str, ChatProject]
     messages: dict[str, list[ChatMessage]]
     retriever: RetrieverPort
+    brain: BrainPort
     index_blocked: str | None
 
     def add_source(self, payload: SourceCreate) -> Source: ...

@@ -36,6 +36,7 @@ from ragcore.api.schemas import (
     SourceCreate,
 )
 from ragcore.brain.cards import DocCard, build_card
+from ragcore.brain.topics import Brain
 from ragcore.config import Config
 from ragcore.ingest.chunk import Chunk, chunk_document
 from ragcore.ingest.parse import SUPPORTED_SUFFIXES, ParsedDoc, parse
@@ -109,6 +110,7 @@ class RealStore(Store):
         self._documents_lock = threading.Lock()
         super().__init__(config)
         self.retriever = HybridRetriever(self.vectors, embedder, reranker=reranker)
+        self.brain = Brain(self)
 
     def _seed(self) -> None:
         """Called by ``Store.__init__``: load the saved library instead of scanning fixtures."""
@@ -147,6 +149,7 @@ class RealStore(Store):
 
     def rebuild_index(self) -> None:
         """Drop every vector; the next scan embeds each file again with this build's model."""
+        self.brain.clear()
         self.vectors.clear()
         self.meta.clear_shas()
         self.vectors.write_meta(self._index_meta())
@@ -173,6 +176,7 @@ class RealStore(Store):
         source = self.sources.pop(source_id, None)
         doc_ids = self.meta.remove_source(source_id)
         self._forget(doc_ids)
+        self.brain.removed(doc_ids)
         if source is not None:
             # Re-adding the folder later brings its removed files back.
             root = Path(source.path)
@@ -186,6 +190,7 @@ class RealStore(Store):
         self.removed_paths.add(document.path)
         self.meta.delete_documents([doc_id])
         self._forget([doc_id])
+        self.brain.removed([doc_id])
         if source := self.sources.get(document.source_id):
             self._recount(source)
         self.save_library()
@@ -291,6 +296,7 @@ class RealStore(Store):
                 results[document.id] = document
             if todo or gone:
                 await asyncio.to_thread(self.vectors.optimize)
+                await self.brain.changed([doc_id for doc_id, _ in todo], gone)
 
             self._recount(source)
             source.last_scan_at = _now()
@@ -538,7 +544,7 @@ class RealStore(Store):
             documents=len(self.documents),
             chunks=self.vectors.chunk_count(),
             parents=sum(d.n_pages or 0 for d in documents),
-            topics=0,
+            topics=len(self.brain.nodes),
             size_bytes=sum(d.size_bytes for d in documents),
             embed_model=self.embed_model_id,
             embed_dim=EMBED_DIM,
@@ -555,6 +561,7 @@ class RealStore(Store):
     def wipe(self, *, keep_connections: bool) -> None:
         super().wipe(keep_connections=keep_connections)
         self.meta.wipe(keep_connections=keep_connections)
+        self.brain.clear()
         shutil.rmtree(self._pages_dir, ignore_errors=True)
 
     def close(self) -> None:

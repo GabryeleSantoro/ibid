@@ -55,9 +55,13 @@ def create_app(config: Config) -> FastAPI:
         if backend.servers:
             await backend.servers.start()
         watch_task = asyncio.create_task(backend.watcher.run()) if backend.watcher else None
+        brain_task = asyncio.create_task(backend.store.brain.start())
         try:
             yield
         finally:
+            brain_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await brain_task
             if watch_task is not None:
                 watch_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):

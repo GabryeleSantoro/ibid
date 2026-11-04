@@ -30,6 +30,7 @@ from ragcore.api.schemas import (
     Source,
     SourceCreate,
 )
+from ragcore.brain.null import NullBrain
 from ragcore.config import Config
 from ragcore.local_connection import LOCAL_ID, local_connection
 from ragcore.stub.corpus import LoadedDoc, find_fixture_dir, load_corpus
@@ -74,6 +75,7 @@ class Store:
         self.projects: dict[str, ChatProject] = {}
         self.messages: dict[str, list[ChatMessage]] = {}
         self.retriever = Retriever([])
+        self.brain = NullBrain()
 
         self.settings = AppSettings(
             onboarded=True,
