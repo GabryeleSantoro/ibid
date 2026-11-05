@@ -54,6 +54,7 @@ import posixpath
 import re
 import unicodedata
 import xml.etree.ElementTree as ET
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -135,6 +136,36 @@ def _clean_pdf_text(text: str) -> str:
     return text.strip()
 
 
+BUILD_STEP_OVERLAP = 0.9
+
+
+def _blank_build_steps(sections: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Blank each page that is only a click-by-click step towards the next one.
+
+    Slides with reveal animations export one PDF page per click, each repeating the
+    previous one plus a little more, so the same text would be indexed (and sent to
+    the converter) once per click. A page is a step when the next page is no shorter
+    and holds at least 90% of its words; the slack absorbs typo fixes between clicks.
+    Chains collapse onto the last, complete page. Blanking instead of dropping keeps
+    page numbers true, like a page with no text layer.
+    """
+    # ponytail: up to 10% of a step's words may be lost if the next click also removes
+    # something; compare whole lines if a deck shows that.
+    words = [Counter(text.split()) for _, text in sections]
+    return [
+        (
+            section_path,
+            ""
+            if i + 1 < len(words)
+            and words[i]
+            and words[i + 1].total() >= words[i].total()
+            and (words[i] - words[i + 1]).total() <= (1 - BUILD_STEP_OVERLAP) * words[i].total()
+            else text,
+        )
+        for i, (section_path, text) in enumerate(sections)
+    ]
+
+
 def _pdf(path: Path) -> ParsedDoc:
     """Extract one page per PDF page using PDFium's text layer.
 
@@ -173,7 +204,9 @@ def _pdf(path: Path) -> ParsedDoc:
         document.close()
 
     return ParsedDoc(
-        title=path.stem, pages=_paginate(sections, keep_empty=True), needs_ocr=needs_ocr
+        title=path.stem,
+        pages=_paginate(_blank_build_steps(sections), keep_empty=True),
+        needs_ocr=needs_ocr,
     )
 
 

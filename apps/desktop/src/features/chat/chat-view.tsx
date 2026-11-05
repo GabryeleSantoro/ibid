@@ -65,8 +65,9 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
 
   // A new chat gets its id from the first `start` frame. Move to its URL once
   // the stream is over, so the history query takes over from the live state.
+  // Not on error: the sidecar doesn't persist it, so navigating would erase it.
   useEffect(() => {
-    if (!sessionId && activeSession && pending && pending.status !== "retrieving" && pending.status !== "streaming") {
+    if (!sessionId && activeSession && (pending?.status === "done" || pending?.status === "cancelled")) {
       void navigate({ to: "/chat/$sessionId", params: { sessionId: activeSession }, search: true });
     }
   }, [activeSession, navigate, pending, sessionId]);

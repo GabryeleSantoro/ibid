@@ -118,6 +118,28 @@ def test_pdf_page_numbers_survive_a_page_without_text(tmp_path: Path, text_pdf) 
     assert parsed.needs_ocr is True
 
 
+def test_pdf_click_steps_collapse_onto_the_complete_page(tmp_path: Path, text_pdf) -> None:
+    source = tmp_path / "deck.pdf"
+    source.write_bytes(
+        text_pdf(
+            "Environment types observable",
+            "Environment types observable deterministic",
+            "Environment types observable deterministic episodic",
+            "Wumpus world nearby cells are marked OK",
+            "Wumpus world the agent in square one feels a breeze and a stench",
+        )
+    )
+
+    parsed = parse(source)
+
+    assert [page.page for page in parsed.pages] == [1, 2, 3, 4, 5]
+    assert [page.text for page in parsed.pages[:2]] == ["", ""]
+    assert parsed.pages[2].text == "Environment types observable deterministic episodic"
+    # A note that disappears on the next click is not a step: its words would be lost.
+    assert "marked OK" in parsed.pages[3].text
+    assert parsed.needs_ocr is False
+
+
 def test_a_pdf_page_with_a_near_empty_text_layer_is_flagged_for_ocr(
     tmp_path: Path, text_pdf
 ) -> None:

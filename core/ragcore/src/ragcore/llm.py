@@ -18,17 +18,23 @@ import httpx
 
 from ragcore.api.schemas import Connection, RetrievedChunk
 
-SYSTEM_PROMPT = """You answer questions using only the passages provided.
+CONCISE = """Make each point once, with no preamble and no closing recap. When several
+passages say the same thing, state it once, followed by a separate [document_id:page]
+marker for each of them."""
+
+SYSTEM_PROMPT = f"""You answer questions using only the passages provided.
 Cite every claim with a marker of the form [document_id:page] taken from the
 passage headers. If the passages do not contain the answer, say so plainly and
-cite nothing. Do not invent document ids."""
+cite nothing. Do not invent document ids.
+{CONCISE}"""
 
-GLOBAL_SYSTEM_PROMPT = """You answer questions about a whole library of documents, using only
+GLOBAL_SYSTEM_PROMPT = f"""You answer questions about a whole library of documents, using only
 the passages provided. The passages were picked a few per topic so that every topic listed
 below is represented. Synthesise across the topics rather than summarising one passage, and
 say plainly where the passages leave a topic thin. Cite every claim with a marker of the form
 [document_id:page] taken from the passage headers. If the passages do not contain the answer,
-say so plainly and cite nothing. Do not invent document ids."""
+say so plainly and cite nothing. Do not invent document ids.
+{CONCISE}"""
 
 
 def global_prompt(outline: str) -> str:

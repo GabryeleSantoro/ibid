@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -206,19 +207,29 @@ def test_conversion_prompt_asks_the_model_to_deepen_the_topics(client, monkeypat
     assert "esempi numerici" in captured["question"]
 
 
-def test_unique_path_appends_a_counter_on_collision(tmp_path) -> None:
-    (tmp_path / "intro.md").write_text("existing")
+def test_output_path_replaces_an_earlier_run_but_not_this_one(tmp_path) -> None:
+    (tmp_path / "intro.md").write_text("from an earlier run")
+    claimed: set[Path] = set()
 
-    first = conversions._unique_path(tmp_path, "intro")
-    first.write_text("first")
-    second = conversions._unique_path(tmp_path, "intro")
-
-    assert first == tmp_path / "intro-2.md"
-    assert second == tmp_path / "intro-3.md"
+    assert conversions._output_path(tmp_path, "intro", claimed) == tmp_path / "intro.md"
+    assert conversions._output_path(tmp_path, "intro", claimed) == tmp_path / "intro-2.md"
 
 
-def test_unique_path_uses_the_plain_name_when_free(tmp_path) -> None:
-    assert conversions._unique_path(tmp_path, "fresh-title") == tmp_path / "fresh-title.md"
+def test_reconverting_a_deck_replaces_its_chapter(
+    client, read_events, monkeypatch, tmp_path
+) -> None:
+    _mock_ok(client, monkeypatch)
+    slide = tmp_path / "deck.md"
+    slide.write_text("# Deck\n\n## Context\n\nBody.\n")
+
+    paths = []
+    for _ in range(2):
+        with client.stream("POST", "/conversions/slides", json={"file_paths": [str(slide)]}) as r:
+            paths.append(read_events(r)[-1][1]["saved"][0]["path"])
+
+    assert paths[0] == paths[1]
+    assert Path(paths[0]).name == "deck.md"
+    assert [p.name for p in Path(paths[0]).parent.iterdir()] == ["deck.md"]
 
 
 # ------------------------------------------------------- per-presentation errors
@@ -415,13 +426,55 @@ def test_clean_markdown_strips_a_code_fence_the_model_wrapped_it_in() -> None:
     )
 
 
+def _slides(*titles: str) -> list:
+    """Slides as the converter sees them: a running header, the title, a body line."""
+    return [
+        SimpleNamespace(text=f"Course 2026/2027\n{title}\nbody {i}\n{i + 1}")
+        for i, title in enumerate(titles)
+    ]
+
+
 def test_long_decks_are_split_into_even_batches() -> None:
-    pages = list(range(54))
+    pages = _slides(*(f"Topic {i}" for i in range(54)))
     batches = conversions._batches(pages)
 
-    assert [len(b) for b in batches] == [14, 14, 14, 12]
+    assert [len(b) for b in batches] == [14, 14, 13, 13]
     assert sum(batches, []) == pages
     assert len(conversions._batches(pages[:15])) == 1
+
+
+def test_a_batch_never_splits_slides_that_share_a_title() -> None:
+    titles = [f"Topic {i}" for i in range(30)]
+    titles[10:16] = ["PEAS"] * 6  # an even cut would fall after the fifth PEAS slide
+    batches = conversions._batches(_slides(*titles))
+
+    assert [len(b) for b in batches] == [10, 10, 10]
+    assert all("PEAS" in page.text for page in batches[1][:6])
+
+
+def test_later_parts_are_told_which_sections_already_exist(
+    client, read_events, monkeypatch, tmp_path
+) -> None:
+    questions: list[str] = []
+
+    class _Recorder:
+        async def stream(self, question, chunks, directives, **_):
+            questions.append(question)
+            yield f"## Section {len(questions)}\n\nText."
+
+    _mock_ok(client, monkeypatch)
+    from ragcore.api import deps
+
+    monkeypatch.setitem(client.app.dependency_overrides, deps.get_answerer, _Recorder)
+    slide = tmp_path / "long.md"
+    slide.write_text("# Long\n\n" + "".join(f"## S{i}\n\nBody {i}.\n\n" for i in range(20)))
+
+    with client.stream("POST", "/conversions/slides", json={"file_paths": [str(slide)]}) as r:
+        read_events(r)
+
+    assert len(questions) == 2
+    assert "Section 1" not in questions[0]
+    assert "«Section 1»" in questions[1]
 
 
 class _FlakyAnswerer:

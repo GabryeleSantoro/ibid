@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import itertools
 import logging
 import re
 import time
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -175,11 +177,35 @@ BATCH_SLIDES = 15
 BATCH_ATTEMPTS = 2
 
 
+def _slide_titles(pages: list[RetrievedChunk]) -> list[str]:
+    """Each slide's first line that is not a running header/footer or a page number."""
+    lines = [[line.strip() for line in page.text.splitlines() if line.strip()] for page in pages]
+    seen = Counter(line for page_lines in lines for line in set(page_lines))
+    running = {line for line, n in seen.items() if n > len(pages) / 2}
+    return [
+        next((line for line in page_lines if line not in running and not line.isdigit()), "")
+        for page_lines in lines
+    ]
+
+
 def _batches(pages: list[RetrievedChunk]) -> list[list[RetrievedChunk]]:
-    """Even-sized batches of at most BATCH_SLIDES, never a tiny straggler."""
-    count = -(-len(pages) // BATCH_SLIDES)
-    size = -(-len(pages) // count)
-    return [pages[i : i + size] for i in range(0, len(pages), size)]
+    """Even-sized batches of at most BATCH_SLIDES, never a tiny straggler.
+
+    A cut never falls inside a run of slides sharing a title (one topic told over
+    several slides): it moves back to the title change, up to half a batch, otherwise
+    each part would explain that topic again from scratch.
+    """
+    titles = _slide_titles(pages)
+    cuts = [0]
+    while len(pages) - cuts[-1] > BATCH_SLIDES:
+        left = len(pages) - cuts[-1]
+        size = -(-left // -(-left // BATCH_SLIDES))
+        cut = cuts[-1] + size
+        cuts.append(
+            next((c for c in range(cut, cut - size // 2, -1) if titles[c - 1] != titles[c]), cut)
+        )
+    cuts.append(len(pages))
+    return [pages[start:end] for start, end in itertools.pairwise(cuts)]
 
 
 def _part_note(language: str, part: int, parts: int) -> str:
@@ -208,13 +234,34 @@ def _file_stem(value: str) -> str:
     return re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", value).strip(" .")[:120] or "conversione-slide"
 
 
-def _unique_path(directory: Path, stem: str) -> Path:
-    """Never clobber a file an earlier presentation in this batch, or a previous run, claimed."""
+def _written_note(language: str, markdown: str) -> str:
+    """Tell a later part which sections earlier parts wrote, so it does not repeat them."""
+    headings = re.findall(r"^#{2,3}\s+(.+?)\s*$", markdown, re.MULTILINE)
+    if not headings:
+        return ""
+    if language == "it":
+        return (
+            " Sezioni già scritte nelle parti precedenti: "
+            + "; ".join(f"«{heading}»" for heading in headings)
+            + ". Non riscriverle e non rispiegarne gli argomenti: se queste slide li "
+            "riprendono, aggiungi solo ciò che è nuovo."
+        )
+    return (
+        " Sections already written in earlier parts: "
+        + "; ".join(f'"{heading}"' for heading in headings)
+        + ". Do not write them again or re-explain their topics: if these slides return "
+        "to them, add only what is new."
+    )
+
+
+def _output_path(directory: Path, stem: str, claimed: set[Path]) -> Path:
+    """Converting a deck again replaces its chapter; two decks with one name in a run don't."""
     candidate = directory / f"{stem}.md"
     suffix = 2
-    while candidate.exists():
+    while candidate in claimed:
         candidate = directory / f"{stem}-{suffix}.md"
         suffix += 1
+    claimed.add(candidate)
     return candidate
 
 
@@ -372,6 +419,7 @@ async def convert_slides(
         global_dir.mkdir(parents=True, exist_ok=True)
         saved: list[ConversionSavedEvent] = []
         failed: list[PresentationErrorEvent] = []
+        claimed: set[Path] = set()
 
         for index, ref in enumerate(refs):
             try:
@@ -453,6 +501,7 @@ async def convert_slides(
                             "%s: part %d/%d (%d slides)", title, part, len(batches), len(batch)
                         )
                         prompt += _part_note(payload.language, part, len(batches))
+                        prompt += _written_note(payload.language, "".join(output))
                         if part > 1:
                             output.append("\n\n")
                             yield frame("token", {"text": "\n\n"})
@@ -496,7 +545,7 @@ async def convert_slides(
                 continue
 
             markdown = _clean_markdown("".join(output), title)
-            output_path = _unique_path(global_dir, _file_stem(stem))
+            output_path = _output_path(global_dir, _file_stem(stem), claimed)
             output_path.write_text(markdown, encoding="utf-8")
             logger.info(
                 "%s: saved %s (%d chars) in %.0fs",
