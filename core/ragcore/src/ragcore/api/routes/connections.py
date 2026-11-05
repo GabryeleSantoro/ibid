@@ -143,7 +143,12 @@ async def probe_connection(
     started = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=4.0)) as client:
-            response = await client.get(url, headers=headers)
+            response = None
+            # OpenRouter serves /models to anyone, so it can't catch a bad key; /key can.
+            if "openrouter.ai" in url:
+                response = await client.get(url.removesuffix("/models") + "/key", headers=headers)
+            if response is None or response.status_code < 400:
+                response = await client.get(url, headers=headers)
     except httpx.HTTPError as exc:
         return ConnectionTestResult(
             ok=False, reachable=False, model_found=False, streaming=False,

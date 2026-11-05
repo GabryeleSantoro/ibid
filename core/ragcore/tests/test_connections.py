@@ -227,6 +227,29 @@ def test_the_probe_reports_an_http_error_as_reachable_but_not_ok(client, monkeyp
     assert result["error"] == "HTTP 401"
 
 
+def test_probing_openrouter_checks_the_key_since_its_model_list_is_public(
+    client, monkeypatch
+) -> None:
+    async def fake_get(self, url, headers=None):
+        if url == "https://openrouter.ai/api/v1/key":
+            return httpx.Response(401, json={"error": {"message": "User not found.", "code": 401}})
+        return httpx.Response(200, json={"data": [{"id": "z-ai/glm-5.3-flash"}]})
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+    result = client.post(
+        "/connections/test",
+        json={
+            "kind": "openai-compatible",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model_id": "z-ai/glm-5.3-flash",
+            "api_key": "sk-or-v1-revoked",
+        },
+    ).json()
+
+    assert (result["ok"], result["reachable"]) == (False, True)
+    assert result["error"] == "HTTP 401"
+
+
 def test_an_openai_connection_without_a_base_url_fails_before_any_request(client) -> None:
     result = client.post(
         "/connections/test", json={"kind": "openai-compatible", "model_id": "qwen3-8b-instruct"}
