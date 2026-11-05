@@ -379,3 +379,32 @@ def test_connections_survive_a_restart_but_their_keys_do_not(client, tmp_path) -
 
         assert response.status_code == 200
         assert store.secrets[created["id"]] == "sk-1"
+
+
+def test_probe_of_an_edited_connection_reuses_the_stored_key(client, monkeypatch) -> None:
+    """Reopening the dialog shows an empty key field; Test must still use the saved key,
+    while probing the values currently in the form."""
+    seen = []
+
+    async def fake_get(self, url, headers=None):
+        seen.append((url, (headers or {}).get("Authorization")))
+        return httpx.Response(200, json={"data": [{"id": "qwen3-14b-instruct"}]})
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+    connection_id = client.post(
+        "/connections", json={**_LM_STUDIO, "api_key": "sk-saved"}
+    ).json()["id"]
+
+    response = client.post(
+        "/connections/test",
+        json={
+            "connection_id": connection_id,
+            "kind": "openai-compatible",
+            "base_url": "http://localhost:5678/v1",
+            "model_id": "qwen3-14b-instruct",
+            "api_key": None,
+        },
+    )
+
+    assert response.json()["ok"] is True
+    assert seen == [("http://localhost:5678/v1/models", "Bearer sk-saved")]

@@ -190,7 +190,10 @@ async def test_connection(payload: ConnectionTestRequest, store: StoreDep) -> Co
         connection = store.connections.get(payload.connection_id)
         if connection is None:
             raise api_error(404, "connection_not_found", "connection not found")
-        kind, base_url, model_id = connection.kind, connection.base_url, connection.model_id
+        # The edit dialog sends its current (maybe unsaved) values; fall back to the saved ones.
+        kind = kind or connection.kind
+        base_url = base_url or connection.base_url
+        model_id = model_id or connection.model_id
         # Testing a saved connection must not require retyping its key.
         api_key = api_key or store.secrets.get(connection.id)
 

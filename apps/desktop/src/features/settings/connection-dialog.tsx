@@ -159,6 +159,8 @@ export function ConnectionDialog({
   const test = useMutation({
     mutationFn: () =>
       api.testConnection({
+        // Lets the sidecar use the stored key: the key field is empty when the dialog reopens.
+        connection_id: connection?.id ?? null,
         kind: form.kind,
         base_url: form.base_url,
         model_id: form.model_id,
