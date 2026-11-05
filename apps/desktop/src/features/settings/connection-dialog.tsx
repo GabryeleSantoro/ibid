@@ -212,7 +212,7 @@ export function ConnectionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{connection ? t("connection.editTitle") : t("connection.addTitle")}</DialogTitle>
           <DialogDescription>
@@ -238,7 +238,7 @@ export function ConnectionDialog({
                   }));
                 }}
               >
-                <SelectTrigger id="conn-kind">
+                <SelectTrigger id="conn-kind" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,7 +279,7 @@ export function ConnectionDialog({
                     )
                   }
                 >
-                  <SelectTrigger id="conn-provider-sort">
+                  <SelectTrigger id="conn-provider-sort" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -343,7 +343,7 @@ export function ConnectionDialog({
                 value={form.thinking}
                 onValueChange={(value) => set("thinking", value as typeof form.thinking)}
               >
-                <SelectTrigger id="conn-thinking">
+                <SelectTrigger id="conn-thinking" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
