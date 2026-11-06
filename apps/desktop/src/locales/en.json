@@ -513,6 +513,7 @@
     "reindexFailed": "Re-index failed",
     "removeFailed": "Could not remove",
     "moveFailed": "Could not move",
+    "renameFailed": "Could not rename",
     "documentCount_one": "{{count}} document",
     "documentCount_other": "{{count}} documents",
     "jobsRunning_one": "{{count}} job running",

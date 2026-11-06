@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from ragcore.api.app import create_app
 
 
 def a_source(client: TestClient, folder: Path, **extra) -> dict:
@@ -211,3 +213,38 @@ def test_rebuilding_an_empty_index_still_produces_a_job(client: TestClient) -> N
 
     # A zero total would render as a divide-by-zero progress bar.
     assert job["total"] == 1
+
+
+both_backends = pytest.mark.parametrize("client", ["stub", "real"], indirect=True)
+
+
+@both_backends
+def test_a_renamed_document_keeps_its_name_in_answers_and_after_a_restart(
+    client: TestClient, read_events
+) -> None:
+    with client.stream(
+        "POST", "/query", json={"q": "How does reranking work?", "mode": "local"}
+    ) as response:
+        doc_id = dict(read_events(response))["sources"]["chunks"][0]["doc_id"]
+    path = client.get(f"/documents/{doc_id}").json()["path"]
+
+    renamed = client.patch(f"/documents/{doc_id}", json={"title": "  My notes  "})
+
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "My notes"
+    assert renamed.json()["path"] == path  # the file on disk is untouched
+    with client.stream(
+        "POST", "/query", json={"q": "How does reranking work?", "mode": "local"}
+    ) as response:
+        chunks = dict(read_events(response))["sources"]["chunks"]
+    assert {c["doc_title"] for c in chunks if c["doc_id"] == doc_id} == {"My notes"}
+    with TestClient(create_app(client.app.state.config)) as restarted:
+        restarted.headers["Authorization"] = client.headers["Authorization"]
+        assert restarted.get(f"/documents/{doc_id}").json()["title"] == "My notes"
+
+
+def test_a_rename_needs_a_name_and_a_document(client: TestClient) -> None:
+    doc_id = client.get("/documents").json()["items"][0]["id"]
+
+    assert client.patch(f"/documents/{doc_id}", json={"title": "   "}).status_code == 422
+    assert client.patch("/documents/doc_missing", json={"title": "x"}).status_code == 404

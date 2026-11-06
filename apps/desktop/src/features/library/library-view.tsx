@@ -11,6 +11,7 @@ import {
   FolderInputIcon,
   FolderMinusIcon,
   ListFilterIcon,
+  PencilIcon,
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
@@ -40,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTooltip } from "@/components/ui/tooltip";
+import { NameInput } from "@/features/library/folder-list";
 import { nextSort, visibleRows, type Sort, type SortKey } from "@/features/library/rows";
 import { SourceSidebar } from "@/features/library/source-sidebar";
 import { errorText } from "@/lib/errors";
@@ -110,6 +112,7 @@ export function LibraryView() {
   const [sort, setSort] = useState<Sort>({ key: "title", desc: false });
   const [statuses, setStatuses] = useState<Set<DocumentStatus>>(new Set());
   const [exts, setExts] = useState<Set<string>>(new Set());
+  const [renaming, setRenaming] = useState<string | null>(null);
   const { active } = useJobs();
   const folders = useQuery(foldersQuery);
 
@@ -140,6 +143,16 @@ export function LibraryView() {
     mutationFn: (id: string) => api.removeDocument(id),
     onSuccess: invalidate,
     onError: (error: Error) => toast.error(t("library.removeFailed"), { description: errorText(error) }),
+  });
+
+  const rename = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => api.renameDocument(id, title),
+    onSuccess: (_, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: keys.document(id) });
+      void queryClient.invalidateQueries({ queryKey: keys.content(id) });
+    },
+    onError: (error: Error) => toast.error(t("library.renameFailed"), { description: errorText(error) }),
   });
 
   const move = useMutation({
@@ -346,7 +359,23 @@ export function LibraryView() {
                 {rows.map((document) => (
                   <TableRow key={document.id} className="group">
                     <TableCell className="max-w-0">
-                      <p className="truncate text-[0.8125rem] font-medium">{document.title}</p>
+                      {renaming === document.id ? (
+                        <NameInput
+                          initial={document.title}
+                          onSubmit={(title) => {
+                            setRenaming(null);
+                            if (title !== document.title) rename.mutate({ id: document.id, title });
+                          }}
+                          onCancel={() => setRenaming(null)}
+                        />
+                      ) : (
+                        <p
+                          className="truncate text-[0.8125rem] font-medium"
+                          onDoubleClick={() => setRenaming(document.id)}
+                        >
+                          {document.title}
+                        </p>
+                      )}
                       <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">
                         {document.path}
                       </p>
@@ -372,6 +401,17 @@ export function LibraryView() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
+                        <IconTooltip label={t("library.renameNamed", { name: document.title })}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-label={t("library.renameNamed", { name: document.title })}
+                            onClick={() => setRenaming(document.id)}
+                          >
+                            <PencilIcon className="size-3.5" />
+                          </Button>
+                        </IconTooltip>
                         <DropdownMenu>
                           <IconTooltip label={t("library.moveToFolder")}>
                             <DropdownMenuTrigger asChild>

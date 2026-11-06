@@ -8,6 +8,7 @@ from ragcore.api.schemas import (
     Document,
     DocumentContent,
     DocumentList,
+    DocumentPatch,
     DocumentStatus,
     Job,
     Ok,
@@ -55,6 +56,16 @@ def get_document(doc_id: str, store: StoreDep) -> Document:
     if document is None:
         raise api_error(404, "document_not_found", "document not found")
     return document
+
+
+@router.patch("/documents/{doc_id}", response_model=Document)
+def rename_document(doc_id: str, payload: DocumentPatch, store: StoreDep) -> Document:
+    if doc_id not in store.documents:
+        raise api_error(404, "document_not_found", "document not found")
+    title = payload.title.strip()
+    if not title:
+        raise api_error(422, "document_title_empty", "document title cannot be empty")
+    return store.rename_document(doc_id, title)
 
 
 @router.get("/documents/{doc_id}/content", response_model=DocumentContent)

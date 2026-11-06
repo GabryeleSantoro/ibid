@@ -115,6 +115,10 @@ class FolderAssignment(BaseModel):
     folder_id: str | None = Field(description="None takes the document out of every folder.")
 
 
+class DocumentPatch(BaseModel):
+    title: str = Field(description="The name shown in the library; the file on disk keeps its own.")
+
+
 class DocumentPage(BaseModel):
     page: int
     section_path: str | None = None

@@ -117,7 +117,10 @@ class RealStore(Store):
         self._seed_models()
         self.settings = self.meta.load_settings(AppSettings(storage_path=str(self.config.data_dir)))
         self.sources = self.meta.list_sources()
-        self.documents = self.meta.list_documents()
+        self.documents = {
+            doc_id: d.model_copy(update={"title": self.titles.get(doc_id, d.title)})
+            for doc_id, d in self.meta.list_documents().items()
+        }
         self.removed_paths = self.meta.removed_paths()
         self.index_blocked = self._check_index()
 
@@ -195,6 +198,14 @@ class RealStore(Store):
             self._recount(source)
         self.save_library()
         logger.info("removed from the library: %s", document.path)
+
+    def rename_document(self, doc_id: str, title: str) -> Document:
+        """Like the stub's, but through the lock so a concurrent ingest can't drop it."""
+        self.titles[doc_id] = title
+        self.save_titles()
+        document = self.documents[doc_id].model_copy(update={"title": title})
+        self._update_documents(put=[document])
+        return document
 
     def _update_documents(self, *, put: Iterable[Document] = (), drop: Iterable[str] = ()) -> None:
         """Swap in an updated copy instead of mutating in place.
@@ -407,7 +418,10 @@ class RealStore(Store):
         documents: list[Document] = []
         for p in files:
             self._save_pages(p)
-            documents.append(self._document(source_id, p, now))
+            document = self._document(source_id, p, now)
+            if title := self.titles.get(document.id):
+                document.title = title
+            documents.append(document)
         cards = [
             card
             for p in files

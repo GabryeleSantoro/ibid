@@ -513,6 +513,7 @@
     "reindexFailed": "Neuindizierung fehlgeschlagen",
     "removeFailed": "Entfernen nicht möglich",
     "moveFailed": "Verschieben nicht möglich",
+    "renameFailed": "Umbenennen nicht möglich",
     "documentCount_one": "{{count}} Dokument",
     "documentCount_other": "{{count}} Dokumente",
     "jobsRunning_one": "{{count}} Auftrag läuft",

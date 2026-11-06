@@ -107,6 +107,20 @@ async def test_changed_file_is_reindexed(tmp_path: Path) -> None:
     assert store.index_stats().chunks == sum(d.n_chunks for d in store.documents.values())
 
 
+async def test_a_renamed_document_keeps_its_name_when_the_file_changes(tmp_path: Path) -> None:
+    docs = corpus(tmp_path)
+    store = build(tmp_path)
+    source = add(store, docs)
+    [doc] = [d for d in await store.ingest_source_async(source.id) if d.title == "Reranking"]
+    store.rename_document(doc.id, "Ranking notes")
+
+    (docs / "reranking.md").write_text("# Reranking\n\nRewritten body.\n")
+    await store.ingest_source_async(source.id)
+
+    assert store.documents[doc.id].title == "Ranking notes"
+    assert build(tmp_path).documents[doc.id].title == "Ranking notes"
+
+
 async def test_removing_a_source_drops_its_chunks(tmp_path: Path) -> None:
     store = build(tmp_path)
     source = add(store, corpus(tmp_path))

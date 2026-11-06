@@ -197,7 +197,7 @@ function FolderRow({
   );
 }
 
-function NameInput({
+export function NameInput({
   initial = "",
   placeholder,
   onSubmit,

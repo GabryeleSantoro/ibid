@@ -513,6 +513,7 @@
     "reindexFailed": "Reindicizzazione non riuscita",
     "removeFailed": "Impossibile rimuovere",
     "moveFailed": "Impossibile spostare",
+    "renameFailed": "Impossibile rinominare",
     "documentCount_one": "{{count}} documento",
     "documentCount_other": "{{count}} documenti",
     "jobsRunning_one": "{{count}} attività in corso",

@@ -206,6 +206,8 @@ export const api = {
     request<void>("PUT", `/documents/${docId}/folder`, { folder_id: folderId }),
   getDocument: (id: string) => request<Document>("GET", `/documents/${id}`),
   getContent: (id: string) => request<DocumentContent>("GET", `/documents/${id}/content`),
+  renameDocument: (id: string, title: string) =>
+    request<Document>("PATCH", `/documents/${id}`, { title }),
   removeDocument: (id: string) => request<void>("DELETE", `/documents/${id}`),
   rebuild: (payload: { source_id?: string; doc_ids?: string[]; full?: boolean }) =>
     request<Job>("POST", "/index/rebuild", payload),

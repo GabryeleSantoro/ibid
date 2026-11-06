@@ -513,6 +513,7 @@
     "reindexFailed": "Échec de la réindexation",
     "removeFailed": "Impossible de retirer",
     "moveFailed": "Impossible de déplacer",
+    "renameFailed": "Impossible de renommer",
     "documentCount_one": "{{count}} document",
     "documentCount_other": "{{count}} documents",
     "jobsRunning_one": "{{count}} tâche en cours",

@@ -128,6 +128,14 @@ def retrieval_query(question: str, history: list[tuple[str, str]]) -> str:
     return f"{previous}\n{question}" if previous else question
 
 
+def retitled(store, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
+    """Index rows keep the title the file had when embedded; a rename since then wins."""
+    for chunk in chunks:
+        if (document := store.documents.get(chunk.doc_id)) is not None:
+            chunk.doc_title = document.title
+    return chunks
+
+
 @dataclass(slots=True)
 class Retrieval:
     mode: Literal["local", "global"]
@@ -175,7 +183,7 @@ async def retrieve(
                 "global",
                 reason,
                 context.scope_label,
-                context.chunks,
+                retitled(store, context.chunks),
                 StageLatency(dense_ms=(time.perf_counter() - started) * 1000),
                 context.candidates,
                 system_prompt_for(lang, extra, base=global_prompt(context.outline)),
@@ -185,7 +193,8 @@ async def retrieve(
         search, settings=settings, filters=filters, doc_meta=store.doc_meta()
     )
     return Retrieval(
-        chosen, reason, None, chunks, latency, candidates, system_prompt_for(lang, extra)
+        chosen, reason, None, retitled(store, chunks), latency, candidates,
+        system_prompt_for(lang, extra),
     )
 
 

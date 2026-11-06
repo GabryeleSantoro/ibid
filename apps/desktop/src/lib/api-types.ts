@@ -125,7 +125,8 @@ export interface paths {
         delete: operations["remove_document_documents__doc_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Rename Document */
+        patch: operations["rename_document_documents__doc_id__patch"];
         trace?: never;
     };
     "/documents/{doc_id}/content": {
@@ -1272,6 +1273,14 @@ export interface components {
             section_path?: string | null;
             /** Text */
             text: string;
+        };
+        /** DocumentPatch */
+        DocumentPatch: {
+            /**
+             * Title
+             * @description The name shown in the library; the file on disk keeps its own.
+             */
+            title: string;
         };
         /** DoneEvent */
         DoneEvent: {
@@ -2462,6 +2471,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Ok"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_document_documents__doc_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
                 };
             };
             /** @description Validation Error */

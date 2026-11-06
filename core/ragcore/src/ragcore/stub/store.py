@@ -65,6 +65,8 @@ class Store:
         self.loaded: dict[str, LoadedDoc] = {}
         self.connections: dict[str, Connection] = {}
         self.folders: dict[str, Folder] = {}
+        # Doc id -> the name the user gave it in the library; the file keeps its own.
+        self.titles: dict[str, str] = {}
         # Files the user removed from the library; rescans must not bring them back.
         self.removed_paths: set[str] = set()
         # Connection id -> API key. In memory only, for this process' lifetime:
@@ -84,6 +86,7 @@ class Store:
         )
 
         self.load_chats()
+        self.load_titles()
         self._seed()
         self.load_connections()
         self.load_folders()
@@ -257,7 +260,7 @@ class Store:
                 id=loaded.doc_id,
                 source_id=source_id,
                 path=str(loaded.path),
-                title=loaded.title,
+                title=self.titles.get(loaded.doc_id, loaded.title),
                 ext=loaded.ext,
                 mime=loaded.mime,
                 size_bytes=loaded.size_bytes,
@@ -467,6 +470,24 @@ class Store:
             json.dumps([f.model_dump(mode="json") for f in self.folders.values()], indent=2)
         )
 
+    def load_titles(self) -> None:
+        path = self.config.data_dir / "titles.json"
+        if path.is_file():
+            self.titles = json.loads(path.read_text())
+
+    def save_titles(self) -> None:
+        path = self.config.data_dir / "titles.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(self.titles, indent=2))
+
+    def rename_document(self, doc_id: str, title: str) -> Document:
+        """A library name only: the file on disk keeps its own, and re-indexing keeps this."""
+        self.titles[doc_id] = title
+        self.save_titles()
+        document = self.documents[doc_id].model_copy(update={"title": title})
+        self.documents = {**self.documents, doc_id: document}
+        return document
+
     # ------------------------------------------------------------------ wipe
 
     def wipe(self, *, keep_connections: bool) -> None:
@@ -477,9 +498,11 @@ class Store:
         self.sessions.clear()
         self.messages.clear()
         self.removed_paths.clear()
+        self.titles.clear()
         self.rebuild_index()
         self.save_library()
         self.save_chats()
+        self.save_titles()
         if not keep_connections:
             self.connections.clear()
             self.settings.active_connection_id = None
