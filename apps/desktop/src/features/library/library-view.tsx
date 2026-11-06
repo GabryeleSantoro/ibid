@@ -3,10 +3,14 @@ import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   BookOpenIcon,
+  ChevronsUpDownIcon,
   FolderIcon,
   FolderInputIcon,
   FolderMinusIcon,
+  ListFilterIcon,
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
@@ -18,6 +22,7 @@ import { StatusChip, documentTone } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -35,12 +40,66 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTooltip } from "@/components/ui/tooltip";
+import { nextSort, visibleRows, type Sort, type SortKey } from "@/features/library/rows";
 import { SourceSidebar } from "@/features/library/source-sidebar";
 import { errorText } from "@/lib/errors";
 import { bytes, relativeTime } from "@/lib/format";
-import { api } from "@/lib/ipc";
+import { api, type DocumentStatus } from "@/lib/ipc";
 import { useJobs } from "@/lib/jobs-context";
 import { foldersQuery, keys } from "@/lib/queries";
+import { cn } from "@/lib/utils";
+
+function toggled<T>(set: Set<T>, value: T): Set<T> {
+  const next = new Set(set);
+  if (!next.delete(value)) next.add(value);
+  return next;
+}
+
+/** `.pdf` → `PDF` */
+const extLabel = (ext: string) => ext.replace(/^\./, "").toUpperCase() || "—";
+
+function SortHead({
+  column,
+  sort,
+  onSort,
+  right,
+  className,
+  children,
+}: {
+  column: SortKey;
+  sort: Sort;
+  onSort: (column: SortKey) => void;
+  right?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const active = sort.key === column;
+  const Icon = !active ? ChevronsUpDownIcon : sort.desc ? ArrowDownIcon : ArrowUpIcon;
+  return (
+    <TableHead
+      className={cn(right && "text-right", className)}
+      aria-sort={active ? (sort.desc ? "descending" : "ascending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "group/sort inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+          right && "flex-row-reverse",
+          !active && "text-muted-foreground",
+        )}
+      >
+        {children}
+        <Icon
+          className={cn(
+            "size-3 shrink-0",
+            !active && "opacity-0 group-hover/sort:opacity-60 group-focus-visible/sort:opacity-60",
+          )}
+        />
+      </button>
+    </TableHead>
+  );
+}
 
 export function LibraryView() {
   const { t } = useTranslation();
@@ -48,6 +107,9 @@ export function LibraryView() {
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<Sort>({ key: "title", desc: false });
+  const [statuses, setStatuses] = useState<Set<DocumentStatus>>(new Set());
+  const [exts, setExts] = useState<Set<string>>(new Set());
   const { active } = useJobs();
   const folders = useQuery(foldersQuery);
 
@@ -97,6 +159,15 @@ export function LibraryView() {
 
   const items = documents.data?.items ?? [];
   const errored = items.filter((document) => document.status === "error");
+  const statusLabel = (status: DocumentStatus) => t(`documentStatus.${status}`);
+  const rows = visibleRows(items, { statuses, exts }, sort, statusLabel);
+  const filterCount = statuses.size + exts.size;
+  // Offer what this view holds, plus anything still ticked so it can be unticked.
+  const statusOptions = [...new Set([...items.map((document) => document.status), ...statuses])].sort(
+    (left, right) => statusLabel(left).localeCompare(statusLabel(right)),
+  );
+  const extOptions = [...new Set([...items.map((document) => document.ext), ...exts])].sort();
+  const onSort = (column: SortKey) => setSort((current) => nextSort(current, column));
 
   return (
     <>
@@ -133,12 +204,72 @@ export function LibraryView() {
                   className="h-8 w-56 pl-8 text-xs"
                 />
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8"
+                    disabled={items.length === 0 && filterCount === 0}
+                  >
+                    <ListFilterIcon className="size-3.5" />
+                    {t("library.filters")}
+                    {filterCount ? (
+                      <span className="rounded-full bg-primary px-1.5 text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums">
+                        {filterCount}
+                      </span>
+                    ) : null}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    {t("library.colStatus")}
+                  </DropdownMenuLabel>
+                  {statusOptions.map((status) => (
+                    <DropdownMenuCheckboxItem
+                      key={status}
+                      checked={statuses.has(status)}
+                      onCheckedChange={() => setStatuses((current) => toggled(current, status))}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      {statusLabel(status)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    {t("library.fileType")}
+                  </DropdownMenuLabel>
+                  {extOptions.map((ext) => (
+                    <DropdownMenuCheckboxItem
+                      key={ext}
+                      checked={exts.has(ext)}
+                      onCheckedChange={() => setExts((current) => toggled(current, ext))}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      {extLabel(ext)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {filterCount ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setStatuses(new Set());
+                          setExts(new Set());
+                        }}
+                      >
+                        {t("library.clearFilters")}
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="secondary"
                 size="sm"
                 className="h-8"
-                disabled={items.length === 0 || reindex.isPending}
-                onClick={() => reindex.mutate(items.map((document) => document.id))}
+                disabled={rows.length === 0 || reindex.isPending}
+                onClick={() => reindex.mutate(rows.map((document) => document.id))}
               >
                 <RefreshCwIcon className="size-3.5" />
                 {t("library.reindexAll")}
@@ -160,6 +291,13 @@ export function LibraryView() {
               <Skeleton className="h-9 w-full" />
               <Skeleton className="h-9 w-full" />
               <Skeleton className="h-9 w-full" />
+            </div>
+          ) : rows.length === 0 && (filterCount > 0 || search) ? (
+            <div className="grid h-full place-items-center p-10 text-center">
+              <div className="max-w-sm">
+                <p className="text-sm font-medium">{t("library.noMatches")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("library.noMatchesHint")}</p>
+              </div>
             </div>
           ) : items.length === 0 && folderId ? (
             <div className="grid h-full place-items-center p-10 text-center">
@@ -183,17 +321,29 @@ export function LibraryView() {
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableHead className="w-[42%]">{t("library.colDocument")}</TableHead>
-                  <TableHead>{t("library.colStatus")}</TableHead>
-                  <TableHead className="text-right">{t("library.colPages")}</TableHead>
-                  <TableHead className="text-right">{t("library.colPassages")}</TableHead>
-                  <TableHead className="text-right">{t("library.colSize")}</TableHead>
-                  <TableHead className="text-right">{t("library.colModified")}</TableHead>
+                  <SortHead column="title" sort={sort} onSort={onSort} className="w-[42%]">
+                    {t("library.colDocument")}
+                  </SortHead>
+                  <SortHead column="status" sort={sort} onSort={onSort}>
+                    {t("library.colStatus")}
+                  </SortHead>
+                  <SortHead column="n_pages" sort={sort} onSort={onSort} right>
+                    {t("library.colPages")}
+                  </SortHead>
+                  <SortHead column="n_chunks" sort={sort} onSort={onSort} right>
+                    {t("library.colPassages")}
+                  </SortHead>
+                  <SortHead column="size_bytes" sort={sort} onSort={onSort} right>
+                    {t("library.colSize")}
+                  </SortHead>
+                  <SortHead column="mtime" sort={sort} onSort={onSort} right>
+                    {t("library.colModified")}
+                  </SortHead>
                   <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((document) => (
+                {rows.map((document) => (
                   <TableRow key={document.id} className="group">
                     <TableCell className="max-w-0">
                       <p className="truncate text-[0.8125rem] font-medium">{document.title}</p>

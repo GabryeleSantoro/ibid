@@ -372,6 +372,43 @@ def test_converted_files_all_land_in_one_reused_source(
     assert global_sources[0]["document_count"] == 2
 
 
+def test_removing_the_global_source_keeps_its_old_chapters_out(
+    client, read_events, monkeypatch, tmp_path
+) -> None:
+    _mock_ok(client, monkeypatch)
+
+    def convert(name: str) -> None:
+        slide = tmp_path / f"{name}.md"
+        slide.write_text(f"# {name.title()}\n\n## Context\n\nBody.\n")
+        with client.stream("POST", "/conversions/slides", json={"file_paths": [str(slide)]}) as r:
+            read_events(r)
+
+    def global_source() -> dict:
+        return next(s for s in client.get("/sources").json() if s["path"].endswith("global-files"))
+
+    convert("one")
+    client.delete(f"/sources/{global_source()['id']}")
+    convert("two")
+
+    assert global_source()["document_count"] == 1
+
+
+def test_reconverting_a_removed_chapter_brings_it_back(
+    client, read_events, monkeypatch, tmp_path
+) -> None:
+    _mock_ok(client, monkeypatch)
+    slide = tmp_path / "one.md"
+    slide.write_text("# One\n\n## Context\n\nBody.\n")
+
+    def convert() -> dict:
+        with client.stream("POST", "/conversions/slides", json={"file_paths": [str(slide)]}) as r:
+            return read_events(r)[-1][1]["saved"][0]
+
+    client.delete(f"/documents/{convert()['document_id']}")
+
+    assert convert()["document_id"] is not None
+
+
 def test_the_english_prompt_is_used_when_asked_for(client, monkeypatch, tmp_path) -> None:
     captured = _mock_ok(client, monkeypatch)
     slide = tmp_path / "deck.md"

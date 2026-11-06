@@ -42,7 +42,7 @@ export function ContextSidebar({
       </header>
 
       <ScrollArea className="flex-1">
-        <div className="px-2 pb-3">{children}</div>
+        <div className="pr-4 pl-2 pb-3">{children}</div>
       </ScrollArea>
 
       {footer ? (

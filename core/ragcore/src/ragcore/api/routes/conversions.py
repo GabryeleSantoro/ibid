@@ -274,20 +274,30 @@ def _clean_markdown(text: str, title: str) -> str:
     return cleaned + "\n"
 
 
-def _global_source(store, global_dir: Path):
-    for source in store.sources.values():
-        if source.project_id is None and Path(source.path) == global_dir:
-            return source
-    return store.add_source(
-        SourceCreate(
-            path=str(global_dir),
-            include_globs=["**/*.md"],
-            exclude_globs=[],
-            max_file_mb=100,
-            watch=True,
-            project_id=None,
-        )
+def _global_source(store, global_dir: Path, output_path: Path):
+    source = next(
+        (s for s in store.sources.values()
+         if s.project_id is None and Path(s.path) == global_dir),
+        None,
     )
+    if source is None:
+        # Removing this source left its chapters on disk: they stay out of the
+        # library when the next conversion brings the folder back.
+        store.removed_paths |= {str(p) for p in global_dir.glob("**/*.md")}
+        source = store.add_source(
+            SourceCreate(
+                path=str(global_dir),
+                include_globs=["**/*.md"],
+                exclude_globs=[],
+                max_file_mb=100,
+                watch=True,
+                project_id=None,
+            )
+        )
+    # A fresh conversion joins the library even where an earlier one was removed.
+    store.removed_paths.discard(str(output_path))
+    store.save_library()
+    return source
 
 
 def _chunks_from_pages(
@@ -554,7 +564,7 @@ async def convert_slides(
 
             # The file is the deliverable: an indexing failure (embedder down) must not
             # swallow it or kill the stream; the next scan of the source indexes it.
-            source = _global_source(store, global_dir)
+            source = _global_source(store, global_dir, output_path)
             try:
                 indexed = await store.ingest_source_async(source.id)
             except Exception as exc:  # noqa: BLE001
