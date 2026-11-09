@@ -61,6 +61,8 @@ export type ChatProjectPatch = Schemas["ChatProjectPatch"];
 export type SlideConversionRequest = Schemas["SlideConversionRequest"];
 export type ConversionSavedEvent = Schemas["ConversionSavedEvent"];
 export type ConversionDoneEvent = Schemas["ConversionDoneEvent"];
+export type BookRequest = Schemas["BookRequest"];
+export type BookResult = Schemas["BookResult"];
 export type Topic = Schemas["Topic"];
 export type TopicTree = Schemas["TopicTree"];
 
@@ -265,6 +267,8 @@ export const api = {
       confirm: "DELETE",
       keep_connections: keepConnections,
     }),
+
+  createBook: (payload: BookRequest) => request<BookResult>("POST", "/books", payload),
 
   evalSets: () => request<EvalSet[]>("GET", "/eval/sets"),
   getTopics: () => request<TopicTree>("GET", "/brain/topics"),

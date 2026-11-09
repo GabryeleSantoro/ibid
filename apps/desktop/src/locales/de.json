@@ -57,7 +57,13 @@
     "local_model_failed": "Das integrierte Modell konnte nicht gestartet werden: {{reason}}",
     "local_model_unsupported_for_slides": "Die Foliensatz-Umwandlung benötigt eine Dienstverbindung; das integrierte Modell ist dafür zu klein.",
     "topic_not_found": "Thema nicht gefunden. Es hat sich nach einer Neugruppierung vielleicht geändert.",
-    "index_blocked": "Der Index wurde mit einem anderen Embedding-Modell erstellt. Neu indexieren, um fortzufahren."
+    "index_blocked": "Der Index wurde mit einem anderen Embedding-Modell erstellt. Neu indexieren, um fortzufahren.",
+    "book_not_markdown": "„{{title}}“ ist kein Markdown-Dokument.",
+    "book_source_missing": "Die Datei von „{{title}}“ ist nicht mehr auf der Festplatte.",
+    "book_engine_download": "Die LaTeX-Engine konnte nicht heruntergeladen werden. Prüfe die Verbindung und versuche es erneut.",
+    "book_engine_unsupported": "Für dieses System ist keine LaTeX-Engine verfügbar. Installiere Tectonic und lege es in den PATH.",
+    "book_compile_failed": "LaTeX konnte das PDF nicht erzeugen: {{detail}}",
+    "book_compile_timeout": "LaTeX hat zu lange gebraucht. Versuche es erneut: Bereits geladene Pakete bleiben erhalten."
   },
   "settings": {
     "language": {
@@ -211,7 +217,8 @@
     "themeLight": "Hell",
     "themeDark": "Dunkel",
     "themeSystem": "System",
-    "topics": "Themen"
+    "topics": "Themen",
+    "book": "Buch"
   },
   "tour": {
     "skip": "Tour überspringen",
@@ -787,5 +794,32 @@
     "noEmbedder": "Themen brauchen das laufende Embedding-Modell.",
     "openModels": "Modelle öffnen",
     "empty": "Noch keine Themenkarte. Neu gruppieren, um eine zu erstellen."
+  },
+  "book": {
+    "lead": "Wähle Markdown-Dokumente, bring sie in Lesereihenfolge und erhalte ein einziges, mit LaTeX gesetztes PDF zum Lernen. Jedes Dokument wird ein Kapitel.",
+    "available": "Markdown-Dokumente",
+    "search": "Dokumente suchen",
+    "converted": "konvertiert",
+    "emptyTitle": "Noch keine Markdown-Dokumente",
+    "emptyHint": "Konvertiere Folien oder füge der Bibliothek einen Ordner mit .md-Dateien hinzu.",
+    "noMatch": "Kein Dokument passt zur Suche.",
+    "outline": "Dein Buch",
+    "title": "Titel",
+    "titlePlaceholder": "Skript",
+    "chapters_one": "{{count}} Kapitel",
+    "chapters_other": "{{count}} Kapitel",
+    "outlineEmpty": "Hake links Dokumente an: Jedes wird ein Kapitel, in der hier festgelegten Reihenfolge.",
+    "dragHint": "Zeilen ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern.",
+    "moveUp": "{{title}} nach oben",
+    "moveDown": "{{title}} nach unten",
+    "remove": "{{title}} entfernen",
+    "generate": "PDF erzeugen",
+    "generating": "Wird gesetzt…",
+    "firstRunNote": "Beim ersten Mal werden die LaTeX-Engine (etwa 22 MB) und ihre Pakete heruntergeladen: Das kann einige Minuten dauern.",
+    "ready": "PDF fertig",
+    "hadErrors": "LaTeX hat Fehler gemeldet und weitergemacht: Manche Formeln sehen eventuell falsch aus. Details stehen in der .log-Datei neben dem PDF.",
+    "openPdf": "PDF öffnen",
+    "reveal": "Im Finder zeigen",
+    "failed": "PDF konnte nicht erstellt werden"
   }
 }

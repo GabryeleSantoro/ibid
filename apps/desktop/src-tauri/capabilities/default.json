@@ -9,6 +9,10 @@
     "core:default",
     "core:window:allow-start-dragging",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "$HOME/.ibid/books/**" }]
+    },
     "dialog:allow-open",
     "os:allow-platform",
     "os:allow-locale",

@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from ragcore import __version__
 from ragcore.api.errors import ApiError, api_error_handler
 from ragcore.api.routes import (
+    books,
     brain,
     chats,
     connections,
@@ -106,6 +107,7 @@ def create_app(config: Config) -> FastAPI:
         folders.router,
         suggestions.router,
         brain.router,
+        books.router,
     ):
         app.include_router(router)
 

@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIcon,
+  BookTextIcon,
   BoxesIcon,
   FlaskConicalIcon,
   LibraryIcon,
@@ -32,6 +33,7 @@ const PRIMARY: RailItem[] = [
   { to: "/library", labelKey: "nav.library", icon: LibraryIcon, match: ["/library", "/reader"] },
   { to: "/topics", labelKey: "nav.topics", icon: NetworkIcon, match: ["/topics"] },
   { to: "/convert", labelKey: "nav.convert", icon: FilePenLineIcon, match: ["/convert"] },
+  { to: "/book", labelKey: "nav.book", icon: BookTextIcon, match: ["/book"] },
   { to: "/models", labelKey: "nav.models", icon: BoxesIcon, match: ["/models"] },
   { to: "/settings", labelKey: "nav.settings", icon: SettingsIcon, match: ["/settings"] },
 ];

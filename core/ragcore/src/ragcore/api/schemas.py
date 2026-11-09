@@ -340,6 +340,19 @@ class SlideConversionRequest(BaseModel):
         return self
 
 
+class BookRequest(BaseModel):
+    """Markdown documents compiled into one PDF, chapters in list order."""
+
+    title: str = Field(default="", max_length=200)
+    document_ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class BookResult(BaseModel):
+    tex_path: str
+    pdf_path: str
+    had_errors: bool  # LaTeX hit errors but still wrote the PDF
+
+
 class ConversionStartEvent(BaseModel):
     presentation_index: int
     presentation_total: int

@@ -57,7 +57,13 @@
     "local_model_failed": "Impossibile avviare il modello integrato: {{reason}}",
     "local_model_unsupported_for_slides": "La conversione delle slide richiede una connessione a un servizio; il modello integrato è troppo piccolo.",
     "topic_not_found": "Argomento non trovato. Potrebbe essere cambiato dopo un ricalcolo.",
-    "index_blocked": "L'indice è stato creato con un altro modello di embedding. Reindicizza per continuare."
+    "index_blocked": "L'indice è stato creato con un altro modello di embedding. Reindicizza per continuare.",
+    "book_not_markdown": "“{{title}}” non è un documento Markdown.",
+    "book_source_missing": "Il file di “{{title}}” non è più sul disco.",
+    "book_engine_download": "Impossibile scaricare il motore LaTeX. Controlla la connessione e riprova.",
+    "book_engine_unsupported": "Nessun motore LaTeX disponibile per questo sistema. Installa Tectonic e mettilo nel PATH.",
+    "book_compile_failed": "LaTeX non è riuscito a produrre il PDF: {{detail}}",
+    "book_compile_timeout": "LaTeX ci ha messo troppo. Riprova: i pacchetti già scaricati restano."
   },
   "settings": {
     "language": {
@@ -211,7 +217,8 @@
     "themeLight": "Chiaro",
     "themeDark": "Scuro",
     "themeSystem": "Sistema",
-    "topics": "Argomenti"
+    "topics": "Argomenti",
+    "book": "Impagina"
   },
   "tour": {
     "skip": "Salta il tour",
@@ -787,5 +794,32 @@
     "noEmbedder": "Gli argomenti richiedono il modello di embedding attivo.",
     "openModels": "Apri Modelli",
     "empty": "Nessuna mappa degli argomenti. Ricalcola per crearne una."
+  },
+  "book": {
+    "lead": "Scegli i documenti Markdown, mettili nell'ordine di lettura e ottieni un unico PDF impaginato in LaTeX, pronto da studiare. Ogni documento diventa un capitolo.",
+    "available": "Documenti Markdown",
+    "search": "Cerca documenti",
+    "converted": "convertito",
+    "emptyTitle": "Ancora nessun documento Markdown",
+    "emptyHint": "Converti qualche slide o aggiungi alla libreria una cartella di file .md.",
+    "noMatch": "Nessun documento corrisponde alla ricerca.",
+    "outline": "Il tuo libro",
+    "title": "Titolo",
+    "titlePlaceholder": "Dispense",
+    "chapters_one": "{{count}} capitolo",
+    "chapters_other": "{{count}} capitoli",
+    "outlineEmpty": "Spunta i documenti a sinistra: ognuno diventa un capitolo, nell'ordine che scegli qui.",
+    "dragHint": "Trascina le righe o usa le frecce per cambiare l'ordine.",
+    "moveUp": "Sposta su {{title}}",
+    "moveDown": "Sposta giù {{title}}",
+    "remove": "Rimuovi {{title}}",
+    "generate": "Genera PDF",
+    "generating": "Impaginazione…",
+    "firstRunNote": "La prima volta vengono scaricati il motore LaTeX (circa 22 MB) e i suoi pacchetti: può richiedere qualche minuto.",
+    "ready": "PDF pronto",
+    "hadErrors": "LaTeX ha segnalato errori ed è andato avanti: alcune formule potrebbero non essere rese bene. I dettagli sono nel file .log accanto al PDF.",
+    "openPdf": "Apri PDF",
+    "reveal": "Mostra nel Finder",
+    "failed": "Impossibile creare il PDF"
   }
 }

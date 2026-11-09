@@ -835,6 +835,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/books": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Book */
+        post: operations["create_book_books_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -877,6 +894,28 @@ export interface components {
             performance?: components["schemas"]["PerformanceSettings"] | null;
             /** Chat Extra Instructions */
             chat_extra_instructions?: string | null;
+        };
+        /**
+         * BookRequest
+         * @description Markdown documents compiled into one PDF, chapters in list order.
+         */
+        BookRequest: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Document Ids */
+            document_ids: string[];
+        };
+        /** BookResult */
+        BookResult: {
+            /** Tex Path */
+            tex_path: string;
+            /** Pdf Path */
+            pdf_path: string;
+            /** Had Errors */
+            had_errors: boolean;
         };
         /** ChatMessage */
         ChatMessage: {
@@ -3977,6 +4016,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Job"];
+                };
+            };
+        };
+    };
+    create_book_books_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

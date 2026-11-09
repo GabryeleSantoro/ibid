@@ -57,7 +57,13 @@
     "local_model_failed": "The built-in model could not start: {{reason}}",
     "local_model_unsupported_for_slides": "Slide conversion needs a service connection; the built-in model is too small for it.",
     "topic_not_found": "Topic not found. It may have changed after a re-cluster.",
-    "index_blocked": "The index was built with another embedding model. Re-index to continue."
+    "index_blocked": "The index was built with another embedding model. Re-index to continue.",
+    "book_not_markdown": "“{{title}}” is not a Markdown document.",
+    "book_source_missing": "The file of “{{title}}” is no longer on disk.",
+    "book_engine_download": "Could not download the LaTeX engine. Check the internet connection and try again.",
+    "book_engine_unsupported": "No LaTeX engine is available for this system. Install Tectonic and put it on PATH.",
+    "book_compile_failed": "LaTeX could not produce the PDF: {{detail}}",
+    "book_compile_timeout": "LaTeX took too long. Try again: the packages downloaded so far are kept."
   },
   "settings": {
     "language": {
@@ -211,7 +217,8 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
-    "topics": "Topics"
+    "topics": "Topics",
+    "book": "Book"
   },
   "tour": {
     "skip": "Skip tour",
@@ -787,5 +794,32 @@
     "noEmbedder": "Topics need the embedding model running.",
     "openModels": "Open Models",
     "empty": "No topic map yet. Re-cluster to build one."
+  },
+  "book": {
+    "lead": "Pick Markdown documents, put them in reading order and get one PDF typeset with LaTeX, ready to study. Each document becomes a chapter.",
+    "available": "Markdown documents",
+    "search": "Search documents",
+    "converted": "converted",
+    "emptyTitle": "No Markdown documents yet",
+    "emptyHint": "Convert some slides or add a folder of .md files to the library.",
+    "noMatch": "No document matches the search.",
+    "outline": "Your book",
+    "title": "Title",
+    "titlePlaceholder": "Study notes",
+    "chapters_one": "{{count}} chapter",
+    "chapters_other": "{{count}} chapters",
+    "outlineEmpty": "Tick documents on the left: each one becomes a chapter, in the order you set here.",
+    "dragHint": "Drag the rows or use the arrows to change the order.",
+    "moveUp": "Move {{title}} up",
+    "moveDown": "Move {{title}} down",
+    "remove": "Remove {{title}}",
+    "generate": "Generate PDF",
+    "generating": "Typesetting…",
+    "firstRunNote": "The first time, the LaTeX engine (about 22 MB) and its packages are downloaded: it can take a few minutes.",
+    "ready": "PDF ready",
+    "hadErrors": "LaTeX reported errors and kept going: some formulas may look wrong. Details are in the .log file next to the PDF.",
+    "openPdf": "Open PDF",
+    "reveal": "Show in Finder",
+    "failed": "Could not create the PDF"
   }
 }

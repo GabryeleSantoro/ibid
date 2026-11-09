@@ -14,6 +14,14 @@ import "./app.css";
 void detectSystemLocale();
 applyFontSize(getFontSize());
 
+// The shell's native file-drop handler is off (on macOS it swallowed every in-page
+// drag); without it a file dropped on the window would replace the app with that file.
+for (const type of ["dragover", "drop"] as const) {
+  window.addEventListener(type, (event) => {
+    if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

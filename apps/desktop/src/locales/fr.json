@@ -57,7 +57,13 @@
     "local_model_failed": "Le modèle intégré n'a pas pu démarrer : {{reason}}",
     "local_model_unsupported_for_slides": "La conversion de diapositives nécessite une connexion à un service ; le modèle intégré est trop petit.",
     "topic_not_found": "Sujet introuvable. Il a peut-être changé après un recalcul.",
-    "index_blocked": "L'index a été créé avec un autre modèle d'embedding. Réindexez pour continuer."
+    "index_blocked": "L'index a été créé avec un autre modèle d'embedding. Réindexez pour continuer.",
+    "book_not_markdown": "« {{title}} » n'est pas un document Markdown.",
+    "book_source_missing": "Le fichier de « {{title}} » n'est plus sur le disque.",
+    "book_engine_download": "Impossible de télécharger le moteur LaTeX. Vérifiez la connexion et réessayez.",
+    "book_engine_unsupported": "Aucun moteur LaTeX disponible pour ce système. Installez Tectonic et ajoutez-le au PATH.",
+    "book_compile_failed": "LaTeX n'a pas pu produire le PDF : {{detail}}",
+    "book_compile_timeout": "LaTeX a pris trop de temps. Réessayez : les paquets déjà téléchargés sont conservés."
   },
   "settings": {
     "language": {
@@ -211,7 +217,8 @@
     "themeLight": "Clair",
     "themeDark": "Sombre",
     "themeSystem": "Système",
-    "topics": "Sujets"
+    "topics": "Sujets",
+    "book": "Livre"
   },
   "tour": {
     "skip": "Passer la visite",
@@ -787,5 +794,32 @@
     "noEmbedder": "Les sujets nécessitent le modèle d'embedding en marche.",
     "openModels": "Ouvrir Modèles",
     "empty": "Pas encore de carte des sujets. Recalculez pour en créer une."
+  },
+  "book": {
+    "lead": "Choisissez des documents Markdown, mettez-les dans l'ordre de lecture et obtenez un seul PDF composé avec LaTeX, prêt à réviser. Chaque document devient un chapitre.",
+    "available": "Documents Markdown",
+    "search": "Rechercher des documents",
+    "converted": "converti",
+    "emptyTitle": "Aucun document Markdown pour l'instant",
+    "emptyHint": "Convertissez des diapos ou ajoutez à la bibliothèque un dossier de fichiers .md.",
+    "noMatch": "Aucun document ne correspond à la recherche.",
+    "outline": "Votre livre",
+    "title": "Titre",
+    "titlePlaceholder": "Notes de cours",
+    "chapters_one": "{{count}} chapitre",
+    "chapters_other": "{{count}} chapitres",
+    "outlineEmpty": "Cochez des documents à gauche : chacun devient un chapitre, dans l'ordre choisi ici.",
+    "dragHint": "Faites glisser les lignes ou utilisez les flèches pour changer l'ordre.",
+    "moveUp": "Monter {{title}}",
+    "moveDown": "Descendre {{title}}",
+    "remove": "Retirer {{title}}",
+    "generate": "Générer le PDF",
+    "generating": "Composition…",
+    "firstRunNote": "La première fois, le moteur LaTeX (environ 22 Mo) et ses paquets sont téléchargés : cela peut prendre quelques minutes.",
+    "ready": "PDF prêt",
+    "hadErrors": "LaTeX a signalé des erreurs et a continué : certaines formules peuvent être mal rendues. Les détails sont dans le fichier .log à côté du PDF.",
+    "openPdf": "Ouvrir le PDF",
+    "reveal": "Afficher dans le Finder",
+    "failed": "Impossible de créer le PDF"
   }
 }

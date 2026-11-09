@@ -57,7 +57,13 @@
     "local_model_failed": "No se pudo iniciar el modelo integrado: {{reason}}",
     "local_model_unsupported_for_slides": "La conversión de diapositivas requiere una conexión a un servicio; el modelo integrado es demasiado pequeño.",
     "topic_not_found": "Tema no encontrado. Puede haber cambiado tras reagrupar.",
-    "index_blocked": "El índice se creó con otro modelo de embedding. Reindexa para continuar."
+    "index_blocked": "El índice se creó con otro modelo de embedding. Reindexa para continuar.",
+    "book_not_markdown": "«{{title}}» no es un documento Markdown.",
+    "book_source_missing": "El archivo de «{{title}}» ya no está en el disco.",
+    "book_engine_download": "No se pudo descargar el motor LaTeX. Comprueba la conexión e inténtalo de nuevo.",
+    "book_engine_unsupported": "No hay un motor LaTeX disponible para este sistema. Instala Tectonic y añádelo al PATH.",
+    "book_compile_failed": "LaTeX no pudo generar el PDF: {{detail}}",
+    "book_compile_timeout": "LaTeX tardó demasiado. Inténtalo de nuevo: los paquetes ya descargados se conservan."
   },
   "settings": {
     "language": {
@@ -211,7 +217,8 @@
     "themeLight": "Claro",
     "themeDark": "Oscuro",
     "themeSystem": "Sistema",
-    "topics": "Temas"
+    "topics": "Temas",
+    "book": "Libro"
   },
   "tour": {
     "skip": "Saltar tour",
@@ -787,5 +794,32 @@
     "noEmbedder": "Los temas necesitan el modelo de embedding en marcha.",
     "openModels": "Abrir Modelos",
     "empty": "Aún no hay mapa de temas. Reagrupa para crear uno."
+  },
+  "book": {
+    "lead": "Elige documentos Markdown, ordénalos para la lectura y obtén un único PDF compuesto con LaTeX, listo para estudiar. Cada documento se convierte en un capítulo.",
+    "available": "Documentos Markdown",
+    "search": "Buscar documentos",
+    "converted": "convertido",
+    "emptyTitle": "Aún no hay documentos Markdown",
+    "emptyHint": "Convierte unas diapositivas o añade a la biblioteca una carpeta con archivos .md.",
+    "noMatch": "Ningún documento coincide con la búsqueda.",
+    "outline": "Tu libro",
+    "title": "Título",
+    "titlePlaceholder": "Apuntes",
+    "chapters_one": "{{count}} capítulo",
+    "chapters_other": "{{count}} capítulos",
+    "outlineEmpty": "Marca documentos a la izquierda: cada uno se convierte en un capítulo, en el orden que fijes aquí.",
+    "dragHint": "Arrastra las filas o usa las flechas para cambiar el orden.",
+    "moveUp": "Subir {{title}}",
+    "moveDown": "Bajar {{title}}",
+    "remove": "Quitar {{title}}",
+    "generate": "Generar PDF",
+    "generating": "Componiendo…",
+    "firstRunNote": "La primera vez se descargan el motor LaTeX (unos 22 MB) y sus paquetes: puede tardar unos minutos.",
+    "ready": "PDF listo",
+    "hadErrors": "LaTeX informó errores y siguió adelante: algunas fórmulas pueden verse mal. Los detalles están en el archivo .log junto al PDF.",
+    "openPdf": "Abrir PDF",
+    "reveal": "Mostrar en Finder",
+    "failed": "No se pudo crear el PDF"
   }
 }
