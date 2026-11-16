@@ -110,7 +110,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
     (sources.data ?? [])
       .filter(
         (source) =>
-          source.project_id === null || source.project_id === activeProject?.id,
+          !activeProject || source.project_id === null || source.project_id === activeProject.id,
       )
       .map((source) => source.id),
   );

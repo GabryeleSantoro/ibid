@@ -48,10 +48,10 @@ _cancelled: set[str] = set()
 
 
 def project_filters(store, session_id: str, filters: QueryFilters) -> QueryFilters:
-    """Restrict chats to global knowledge plus the current project's folders."""
+    """Project chats see their own folders (+ global if enabled); plain chats see every folder."""
     session = store.sessions.get(session_id)
     global_ids = [source.id for source in store.sources.values() if source.project_id is None]
-    allowed = set(global_ids)
+    allowed = set(store.sources)
 
     if session is not None and session.project_id is not None:
         project = store.projects.get(session.project_id)

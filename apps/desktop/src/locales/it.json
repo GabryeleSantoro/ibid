@@ -472,6 +472,7 @@
     "globalKnowledge": "Conoscenza globale",
     "includeAllGlobal": "Includi tutti i file della conoscenza globale",
     "noMatchingFiles": "Nessun file corrispondente.",
+    "libraryFolders": "Cartelle della libreria",
     "noGlobalFiles": "Ancora nessun file globale.",
     "collapseProject": "Comprimi cartelle del progetto",
     "expandProject": "Espandi cartelle del progetto",

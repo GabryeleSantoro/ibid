@@ -40,7 +40,7 @@ def test_auto_is_the_default_mode(client: TestClient, read_events) -> None:
 # --------------------------------------------------------------- project scope
 
 
-def test_a_chat_outside_a_project_sees_only_global_folders(
+def test_a_chat_outside_a_project_sees_every_folder(
     client: TestClient, tmp_path: Path
 ) -> None:
     project = client.post("/chats/projects", json={"name": "Research"}).json()
@@ -56,8 +56,8 @@ def test_a_chat_outside_a_project_sees_only_global_folders(
 
     scoped = project_filters(store, session["id"], QueryFilters())
 
-    assert project_source["id"] not in scoped.source_ids
-    assert scoped.source_ids, "global folders are still in scope"
+    assert project_source["id"] in scoped.source_ids
+    assert len(scoped.source_ids) > 1, "global folders are still in scope"
 
 
 def test_a_project_chat_sees_its_own_folders_plus_global_ones(
@@ -92,7 +92,8 @@ def test_a_requested_source_outside_the_scope_is_dropped(
         "/sources",
         json={"path": str(private), "include_globs": ["**/*.md"], "project_id": project["id"]},
     ).json()
-    session = client.post("/chats", json={}).json()
+    other = client.post("/chats/projects", json={"name": "Other"}).json()
+    session = client.post("/chats", json={"project_id": other["id"]}).json()
     store = client.app.state.store
 
     scoped = project_filters(

@@ -31,7 +31,7 @@ import {
   type RetrievedChunk,
   type Source,
 } from "@/lib/ipc";
-import { keys, sourcesQuery } from "@/lib/queries";
+import { foldersQuery, keys, sourcesQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 /**
@@ -63,6 +63,7 @@ export function SourcePanel({
     queryKey: keys.documents({ limit: 500 }),
     queryFn: () => api.listDocuments({ limit: 500 }),
   });
+  const folders = useQuery(foldersQuery);
   const queryClient = useQueryClient();
   const [globalOpen, setGlobalOpen] = useState(true);
   const [projectOpen, setProjectOpen] = useState(true);
@@ -112,8 +113,9 @@ export function SourcePanel({
     }
     onSelectionChange([...next]);
   };
-  const projectSources = (sources.data ?? []).filter(
-    (source) => source.project_id === project?.id,
+  // Plain chats can also pick folders that belong to projects.
+  const projectSources = (sources.data ?? []).filter((source) =>
+    project ? source.project_id === project.id : source.project_id !== null,
   );
   const normalizedSearch = knowledgeSearch.trim().toLowerCase();
   const documentsForSource = (source: Source) =>
@@ -128,6 +130,12 @@ export function SourcePanel({
         document.path.toLowerCase().includes(normalizedSearch),
     );
   };
+  const libraryFolders = (folders.data ?? [])
+    .map((folder) => {
+      const ids = new Set(folder.doc_ids);
+      return { folder, files: selectableDocuments.filter((document) => ids.has(document.id)) };
+    })
+    .filter(({ files }) => files.length > 0);
   const globalDocuments = globalSources.flatMap(documentsForSource);
   const globalEnabled = !project || project.use_global_sources;
   const globalSelectedCount = globalDocuments.filter(isSelected).length;
@@ -254,7 +262,24 @@ export function SourcePanel({
               </CollapsibleContent>
             </Collapsible>
 
-            {project ? (
+            {libraryFolders.length ? (
+              <div className="mt-2 space-y-0.5">
+                <p className="px-1 text-[0.6875rem] font-medium text-muted-foreground">
+                  {t("chat.libraryFolders")}
+                </p>
+                {libraryFolders.map(({ folder, files }) => (
+                  <LibraryFolderGroup
+                    key={folder.id}
+                    name={folder.name}
+                    files={files}
+                    selected={isSelected}
+                    onToggle={toggleDocuments}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {project || projectSources.length ? (
               <Collapsible open={projectOpen} onOpenChange={setProjectOpen}>
                 <div className="mt-2 flex items-center justify-between rounded-md border border-border bg-muted/30 px-2 py-1.5">
                   <CollapsibleTrigger asChild>
@@ -275,20 +300,22 @@ export function SourcePanel({
                       </span>
                     </button>
                   </CollapsibleTrigger>
-                  <AddSourceDialog
-                    projectId={project.id}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6"
-                        aria-label={t("chat.addProjectFolder")}
-                      >
-                        <FolderPlusIcon className="size-3.5" />
-                      </Button>
-                    }
-                    triggerLabel={t("chat.addProjectFolder")}
-                  />
+                  {project ? (
+                    <AddSourceDialog
+                      projectId={project.id}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6"
+                          aria-label={t("chat.addProjectFolder")}
+                        >
+                          <FolderPlusIcon className="size-3.5" />
+                        </Button>
+                      }
+                      triggerLabel={t("chat.addProjectFolder")}
+                    />
+                  ) : null}
                 </div>
                 <CollapsibleContent>
                   <div className="mt-1 space-y-0.5 pl-7">
@@ -511,5 +538,59 @@ function FileRow({
         </p>
       </div>
     </div>
+  );
+}
+
+function LibraryFolderGroup({
+  name,
+  files,
+  selected,
+  onToggle,
+}: {
+  name: string;
+  files: Document[];
+  selected: (document: Document) => boolean;
+  onToggle: (documents: Document[], checked: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = files.filter(selected).length;
+  const checked = count === files.length;
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+        <Checkbox
+          checked={count > 0 && !checked ? "indeterminate" : checked}
+          onCheckedChange={(value) => onToggle(files, value === true)}
+          aria-label={name}
+        />
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            {open ? (
+              <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <FolderIcon className="size-4 shrink-0 text-primary" />
+            <span className="truncate text-xs font-medium">{name}</span>
+            <span className="text-[0.6875rem] text-muted-foreground">
+              {count}/{files.length}
+            </span>
+          </button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent>
+        <div className="ml-6 space-y-0.5 border-l border-border pl-2">
+          {files.map((document) => (
+            <FileRow
+              key={document.id}
+              document={document}
+              selected={selected(document)}
+              disabled={false}
+              onToggle={(c) => onToggle([document], c)}
+            />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

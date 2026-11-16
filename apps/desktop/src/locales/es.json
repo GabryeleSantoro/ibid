@@ -472,6 +472,7 @@
     "globalKnowledge": "Conocimiento global",
     "includeAllGlobal": "Incluir todos los archivos del conocimiento global",
     "noMatchingFiles": "Ningún archivo coincide.",
+    "libraryFolders": "Carpetas de la biblioteca",
     "noGlobalFiles": "Aún no hay archivos globales.",
     "collapseProject": "Contraer carpetas del proyecto",
     "expandProject": "Expandir carpetas del proyecto",
