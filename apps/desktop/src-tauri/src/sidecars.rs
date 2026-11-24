@@ -152,7 +152,7 @@ fn ragcore_command(port: u16, token: &str, hw: &HardwareInfo, app: &AppHandle) -
     let binary = app
         .path()
         .resource_dir()
-        .map(|dir| dir.join("binaries/ragcore"))
+        .map(|dir| dir.join("binaries/ragcore/ragcore"))
         .unwrap_or_else(|_| PathBuf::from("ragcore"));
 
     let mut command = Command::new(binary);

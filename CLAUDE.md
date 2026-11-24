@@ -45,7 +45,7 @@ bun run gen:types      # regenerate src/lib/api-types.ts from a running sidecar 
 cd src-tauri && cargo test --lib
 ```
 
-Other scripts: `scripts/fetch-models.sh` + `scripts/dev/serve-models.sh` (EmbeddingGemma embedder + Qwen3 reranker via llama-server), `scripts/build-sidecar.sh` (PyInstaller → `src-tauri/binaries/ragcore`), `scripts/install-local.sh`.
+Other scripts: `scripts/fetch-models.sh` + `scripts/dev/serve-models.sh` (EmbeddingGemma embedder + Qwen3 reranker via llama-server), `scripts/build-sidecar.sh` (PyInstaller onedir → `src-tauri/binaries/ragcore/ragcore`), `scripts/install-local.sh`.
 
 `scripts/check-licenses.py` + `apps/desktop/src-tauri/deny.toml` are the license guard (CI fails on GPL/AGPL/SSPL).
 

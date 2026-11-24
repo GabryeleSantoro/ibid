@@ -6,7 +6,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 app_name="Ibid.app"
 bundle="$root/apps/desktop/src-tauri/target/release/bundle/macos/$app_name"
-sidecar="$root/apps/desktop/src-tauri/binaries/ragcore"
+sidecar="$root/apps/desktop/src-tauri/binaries/ragcore/ragcore"
 
 # PyInstaller is the slow part: only rerun it when the Python side changed.
 if [ ! -x "$sidecar" ] || [ -n "$(find "$root/core/ragcore/src" "$root/fixtures" -newer "$sidecar" -print -quit)" ]; then
