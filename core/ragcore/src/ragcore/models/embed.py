@@ -9,6 +9,8 @@ and cosine similarity on unit vectors is a dot product.
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 import httpx
 import numpy as np
 
@@ -38,8 +40,12 @@ class EmbedClient:
         self.model = model
         self.normalize = normalize
         self._client = httpx.AsyncClient(timeout=timeout)
+        # Set by build_backend: awaits the model servers' startup so early calls wait, not fail.
+        self.gate: Callable[[], Awaitable[None]] | None = None
 
     async def _post(self, texts: list[str]) -> list[list[float]]:
+        if self.gate:
+            await self.gate()
         response = await self._client.post(
             f"{self.base_url}/v1/embeddings",
             json={"input": texts, "model": self.model},

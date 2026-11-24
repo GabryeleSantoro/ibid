@@ -61,6 +61,7 @@ def build_backend(config: Config) -> Backend:
     from ragcore.stub.hub import HubClient
     from ragcore.stub.jobs import JobManager
 
+    model_clients: list = []
     if config.backend == "stub":
         from ragcore.stub.store import Store
 
@@ -76,11 +77,8 @@ def build_backend(config: Config) -> Backend:
         if os.getenv("RAGCORE_FAKE_MODELS"):
             store = RealStore(config, embedder=FakeEmbedClient())
         else:
-            store = RealStore(
-                config,
-                embedder=EmbedClient(config.embed_url),
-                reranker=RerankClient(config.rerank_url),
-            )
+            model_clients = [EmbedClient(config.embed_url), RerankClient(config.rerank_url)]
+            store = RealStore(config, embedder=model_clients[0], reranker=model_clients[1])
     else:
         raise ValueError(f"unknown backend: {config.backend!r}")
     from ragcore.local_llm import LocalLLM
@@ -91,6 +89,8 @@ def build_backend(config: Config) -> Backend:
         from ragcore.model_servers import ModelServers
 
         servers = ModelServers(config.data_dir, local_llm, config.embed_url, config.rerank_url)
+        for client in model_clients:
+            client.gate = servers.wait_ready
     # Same gate as the model servers: the real backend with real models. Tests drive
     # SourceWatcher directly instead of racing a background rescan.
     watcher = None

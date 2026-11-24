@@ -59,6 +59,7 @@ class ModelServers:
         self._procs: dict[str, asyncio.subprocess.Process] = {}
         self._download: asyncio.Task | None = None
         self._watchdog: asyncio.Task | None = None
+        self._boot: asyncio.Task | None = None
 
     def status(self) -> str:
         if self._download and not self._download.done():
@@ -107,17 +108,31 @@ class ModelServers:
                 await asyncio.sleep(0.5)
         return False
 
+    def start_in_background(self) -> None:
+        """Begin `start()` without blocking the caller (the API must answer /health meanwhile)."""
+        self._boot = asyncio.create_task(self.start())
+
+    async def wait_ready(self) -> None:
+        """Gate for model clients: a call made while the servers load waits instead of failing."""
+        if self._boot and not self._boot.done():
+            await asyncio.shield(self._boot)
+
     async def start(self) -> None:
         """Launch whatever is not running. Idempotent; no-op until models are installed."""
         if self.status() != "ready":
             return
-        for spec in (EMBED, RERANK):
-            proc = self._procs.get(spec.name)
-            if proc is None or proc.returncode is not None:
-                await self._spawn(spec)
-                if not await self._healthy(spec):
-                    self.error = f"{spec.name} did not become healthy"
-                    logger.error(self.error)
+        # Spawn both first, then wait on both together: the two models load in parallel.
+        todo = [
+            spec
+            for spec in (EMBED, RERANK)
+            if (proc := self._procs.get(spec.name)) is None or proc.returncode is not None
+        ]
+        for spec in todo:
+            await self._spawn(spec)
+        for spec, ok in zip(todo, await asyncio.gather(*map(self._healthy, todo)), strict=True):
+            if not ok:
+                self.error = f"{spec.name} did not become healthy"
+                logger.error(self.error)
         if self._watchdog is None:
             self._watchdog = asyncio.create_task(self._watch())
 
@@ -129,6 +144,8 @@ class ModelServers:
                 await self.start()
 
     def stop(self) -> None:
+        if self._boot:
+            self._boot.cancel()
         if self._watchdog:
             self._watchdog.cancel()
             self._watchdog = None

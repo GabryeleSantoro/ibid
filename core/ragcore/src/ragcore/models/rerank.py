@@ -7,6 +7,8 @@ Qwen3-Reranker's `relevance_score` is already P(yes) in 0..1, the scale
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 import httpx
 
 from ragcore.models.embed import MAX_INPUT_CHARS
@@ -19,8 +21,12 @@ class RerankClient:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self._client = httpx.AsyncClient(timeout=timeout)
+        # Set by build_backend: awaits the model servers' startup so early calls wait, not fail.
+        self.gate: Callable[[], Awaitable[None]] | None = None
 
     async def _post(self, query: str, documents: list[str], top_n: int) -> list[dict]:
+        if self.gate:
+            await self.gate()
         response = await self._client.post(
             f"{self.base_url}/v1/rerank",
             json={"query": query, "documents": documents, "top_n": top_n, "model": self.model},

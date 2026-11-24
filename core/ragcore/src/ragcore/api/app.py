@@ -54,8 +54,9 @@ def create_app(config: Config) -> FastAPI:
         app.state.answerer = backend.answerer
         app.state.local_llm = backend.local_llm
         app.state.servers = backend.servers
+        # Not awaited: /health must answer while the llama-servers still load.
         if backend.servers:
-            await backend.servers.start()
+            backend.servers.start_in_background()
         watch_task = asyncio.create_task(backend.watcher.run()) if backend.watcher else None
         brain_task = asyncio.create_task(backend.store.brain.start())
         try:
